@@ -1,0 +1,426 @@
+[account]
+number = "U11664231"
+cancel_orders = true
+margin_usage = 2.0
+market_data_type = 1
+
+[constants]
+daily_stddev_window = "30 D"
+# write_threshold = 0.01 # 1%
+# write_threshold_sigma = 1.0 # 1𝜎
+# [puts] # Applies only to puts
+# write_threshold = 0.01 # 1%
+# write_threshold_sigma = 1.0 # 1𝜎
+# [calls] # Applies only to calls
+# write_threshold = 0.01 # 1%
+# write_threshold_sigma = 1.0 # 1𝜎
+
+[orders]
+exchange = "SMART"
+price_update_delay = [30, 60]
+minimum_credit = 0.05
+  [orders.algo]
+  strategy = "Adaptive"
+  params = [
+    [
+      "adaptivePriority",
+      "Patient",
+    ],
+  ]
+
+[option_chains]
+expirations = 4
+strikes = 15
+
+[roll_when]
+pnl = 0.9
+dte     = 15
+min_pnl = 0.0
+# max_dte = 180 #
+# close_at_pnl = 0.99
+  [roll_when.calls]
+  itm = true 
+  always_when_itm = false
+  credit_only = false
+  has_excess = true
+  maintain_high_water_mark = false
+
+  [roll_when.puts]
+  # Roll puts if they're in the money. Defaults to false if not specified.
+  itm = false
+
+  # See comments above for `roll_when.calls.always_when_itm` for details on this
+  # option (which behaves the same for puts as with calls).
+  always_when_itm = false
+
+  # Only roll when there's a suitable contract available that will result in a
+  # credit. Enabling this may result in the target delta value being ignored in
+  # circumstances where we can't find a contract that will result in both a
+  # credit _and_ satisfying the target delta (i.e., having a credit takes
+  # precedence).
+  credit_only = false
+
+  # If set to false, puts will not be rolled if there are any number of puts in
+  # excess of the target put quantity. A truthy value means thetagang will keep
+  # rolling puts regardless of the total quantity.
+  has_excess = true
+
+[write_when]
+# By default, we ignore long option positions when calculating whether we can
+# write new contracts. This, however, limits the ability to utilize spreads. For
+# example, we might want to buy some long-dated puts when they're cheap, and
+# then we can sell additional short-dated puts (i.e., a calendar spread).
+# ThetaGang won't open a calendar spread for you by purchasing longer-dated
+# contracts, but if you were to buy some LEAPs yourself, ThetaGang could take
+# advantage of those positions when calculating whether to write additional
+# contracts.
+#
+# If you set this value to true, ThetaGang will calculate the net positions by
+# including the long contracts in its calculations. It does this by greedily
+# matching short positions with long positions such that they cancel each other
+# out. ThetaGang will only match on those positions where the long leg has a
+# greater DTE, and the strike is closer to the money (i.e., the strike for puts
+# must be >=, and the strike for calls must be <=).
+#
+# IMPORTANT NOTE: ThetaGang doesn't manage long contracts at all, so you
+# introduce the risk of having excess short positions when the long contracts
+# eventually expire. For the time being, you need to manage the long legs
+# yourself (by either closing the short side when the long positions expire, or
+# rolling the long positions as they approach expiration). You can avoid rolling
+# excess positions with `roll_when.calls/puts.has_excess = false`.
+calculate_net_contracts = false
+
+  [write_when.calls]
+  # Optionally, only write calls when the underlying is green
+  green = true
+  red   = false
+
+  # With covered calls, we can cap the number of calls to write by this factor. At
+  # 1.0, we write covered calls on 100% of our positions. At 0.5, we'd only write
+  # on 50% of our positions. This value must be between 1 and 0 inclusive.
+  #
+  # This can also be set per-symbol with
+  # `symbols.<symbol>.calls.cap_factor`.
+  cap_factor = 1.0
+
+  # We may want to leave some percentage of our underlying stock perpetually
+  # uncovered so we don't miss out on big upside movements. For example, if our
+  # target number of shares for a given symbol is 1,000, we may want to ensure
+  # 500 shares are _always_ uncovered. This is a bit different from `cap_factor`,
+  # as it applies to the _target_ number of shares, as opposed to the current
+  # positions. A value of 0.5 (50%) means that we always leave 50% (half) of the
+  # target shares uncovered. A bigger number (up to 1.0, 100%) is more bullish,
+  # and a smaller number (down to 0.0, 0%) is more bearish (i.e., cover all
+  # positions with calls). This essentially sets a floor on the number of shares
+  # we try to hold on to in order to avoid missing out on potential upside.
+  #
+  # This can also be set per-symbol with
+  # `symbols.<symbol>.calls.cap_target_floor`.
+  cap_target_floor = 0.0
+
+  [write_when.puts]
+  # Optionally, only write puts when the underlying is red
+  green = false
+  red   = true
+
+[target]
+# Target 45 or more days to expiry
+dte = 45
+
+# Optionally, we can prevent contracts from being rolled insanely far out with
+# `target.max_dte`. Comment this setting out if you don't care about it. You can
+# also specify this per-symbol, with `symbols.<symbol>.max_dte`, or for VIX if
+# you use the VIX call hedging.
+max_dte = 180
+
+# Target delta of 0.3 or less. Defaults to 0.3 if not specified.
+delta = 0.22
+
+# When writing new contracts (either covered calls or naked puts), or rolling
+# before `roll_when.dte` is reached, never write more than this amount of
+# contracts at once. This can be useful to avoid bunching by spreading contract
+# placement out over time (and possibly expirations) in order to protect
+# yourself from large swings. This value does not affect rolling existing
+# contracts to the next expiration. This value is expressed as a percentage of
+# buying power based on the market price of the underlying ticker, as a range
+# from [0.0-1.0].
+#
+# Once the `roll_when.dte` date is reached, all the remaining positions are
+# rolled regardless of the current position quantity.
+#
+# Defaults to 5% of buying power. Set this to 1.0 to effectively disable the
+# limit.
+maximum_new_contracts_percent = 0.05
+
+# Minimum amount of open interest for a contract to qualify
+minimum_open_interest = 10
+
+# Optional: specify delta separately for puts/calls. Takes precedent over
+# target.delta.
+#
+#  [target.puts]
+#  delta = 0.5
+#  [target.calls]
+#  delta = 0.3
+[symbols]
+  [symbols.SPY]
+  weight = 0.3
+  dte = 45
+  delta = 0.25
+      [symbols.SPY.puts]
+        write_threshold_sigma = 1.0
+      [symbols.SPY.calls]
+        write_threshold_sigma = 1.0
+
+  [symbols.TQQQ]
+  weight = 0.04
+  dte = 60
+    [symbols.TQQQ.puts]
+    delta = 0.25
+      write_threshold_sigma = 0.5
+    [symbols.TQQQ.calls]
+    delta = 0.25
+      write_threshold_sigma = 0.5
+    #cap_factor       = 1.0
+    #cap_target_floor = 0.0
+
+  [symbols.SOXL]
+  weight = 0.02
+  dte = 60
+  #primary_exchange = "ARCA"
+    [symbols.SOXL.puts]
+    delta = 0.3
+    write_threshold_sigma = 0.5
+    [symbols.SOXL.calls]
+    delta = 0.3
+    write_threshold_sigma = 0.5
+
+  [symbols.SLV]
+  weight = 0.03
+  #write_threshold = 0.02
+  write_threshold_sigma = 0.5
+  delta = 0.3
+
+  [symbols.GDX]
+  weight = 0.04
+  delta = 0.3
+  #write_threshold = 0.01
+  write_threshold_sigma = 0.5
+
+  [symbols.BITO]
+  weight = 0.04
+  delta = 0.3
+  dte = 60
+    [symbols.BITO.puts]
+      write_threshold_sigma = 0.5
+    [symbols.BITO.calls]
+      write_threshold_sigma = 0.5
+
+  [symbols.XLF]
+  weight = 0.08
+  delta = 0.25
+  dte = 45
+  write_threshold_sigma = 0.5
+
+  [symbols.XLE]
+  weight = 0.04
+  delta = 0.25
+  dte = 45
+  write_threshold_sigma = 0.5
+
+  [symbols.USO]
+  weight = 0.02
+  delta = 0.25
+  dte = 45
+  write_threshold_sigma = 0.5
+
+  [symbols.XBI]
+  weight = 0.05
+  delta = 0.25
+  dte = 45
+  write_threshold_sigma = 0.5
+
+
+  [symbols.EEM]
+  weight = 0.03
+  delta = 0.25
+  dte = 45
+  write_threshold_sigma = 0.5
+
+  [symbols.TLT]
+  weight = 0.1
+  delta = 0.25
+  dte = 60
+    [symbols.TLT.puts]
+      write_threshold_sigma = 0.5
+    [symbols.TLT.calls]
+      write_threshold_sigma = 0.5
+
+  [symbols.HYG]
+  weight = 0.05
+  delta = 0.25
+  dte = 60
+  write_threshold_sigma = 0.5
+
+  [symbols.IWM]
+  weight = 0.12
+  delta = 0.25
+  dte = 45
+  write_threshold_sigma = 0.5
+
+  [symbols.TAN]
+  weight = 0.04
+  delta = 0.25
+  dte = 45
+  write_threshold_sigma = 0.5
+
+[ib_insync]
+logfile = 'ib_insync.log'
+
+# Typically the amount of time needed when waiting on data from the IBKR API.
+# Sometimes it can take a while to retrieve data, and it's lazy-loaded by the
+# API, so getting this number right is largely a matter of guesswork.
+api_response_wait_time = 60
+
+[ibc]
+# IBC configuration parameters. See
+# https://ib-insync.readthedocs.io/api.html#ibc for details.
+gateway     = false
+ibcPath     = '/opt/ibc'
+tradingMode = 'paper'
+# Set this to true if you want to raise an exception on request errors. Under
+# normal operation this should be false because we often try to make "invalid"
+# requests when scanning option chains for example.
+RaiseRequestErrors = false
+password           = 'demo'
+userid             = 'demo'
+# Change this to point to your config.ini for IBC
+ibcIni = '/etc/thetagang/config.ini'
+# Change or unset this to use something other than the Docker bundled OpenJDK.
+javaPath = '/opt/java/openjdk/bin'
+
+# twsPath         = ''
+# twsSettingsPath = ''
+# fixuserid       = ''
+# fixpassword     = ''
+[watchdog]
+# Watchdog configuration params. See
+# https://ib-insync.readthedocs.io/api.html#watchdog for details.
+appStartupTime = 30
+appTimeout     = 20
+clientId       = 1111
+connectTimeout = 5
+host           = '127.0.0.1'
+port           = 8888
+probeTimeout   = 10
+readonly       = false
+retryDelay     = 2
+
+  [watchdog.probeContract]
+  currency = 'USD'
+  exchange = 'SMART'
+  secType  = 'STK'
+  symbol   = 'SPY'
+
+# Optional VIX call hedging, based on the methodology described by the Cboe VIX
+# Tail Hedge Index, described here:
+# https://www.cboe.com/us/indices/dashboard/vxth/
+[vix_call_hedge]
+enabled = false
+
+# Target delta for calls that are purchased
+delta = 0.30
+
+# Target DTE for new positions
+target_dte = 30
+
+# Optionally specify a maximum DTE for VIX positions, which takes precedence
+# over `target.max_dte`.
+# max_dte = 180
+
+# If the current spot VIX exceeds this value, long VIX call positions will be
+# closed. Comment out to disable.
+close_hedges_when_vix_exceeds = 50.0
+
+# Don't count any VIX positions where the DTE is <= this value. Increase this
+# value to create a call ladder. For example, if you set this to 5, thetagang
+# will ignore current VIX positions starting 5 days before expiry, and
+# potentially adding more. This allows you to create a simple call ladder.
+ignore_dte = 0
+
+  # The allocations are specified as an ordered list of allocation weights
+  # according to an upper/lower bound on VIXMO (the 30 day VIX). Default values
+  # are the same as those described in the VXTH methodology. These are evaluated
+  # in order, and the weight from the first allocation that matches will be
+  # applied. The lower bound is inclusive, and the upper bound is exclusive
+  # (.i.e., the code checks that lower <= VIXMO < upper). The upper/lower bounds
+  # are only checked if they're present.
+  #
+  # The allocation weights are multiplied by the account's net liquidation value,
+  # and that amount is allocated to purchasing VIX calls.
+  [[vix_call_hedge.allocation]]
+  upper_bound = 15.0
+  weight      = 0.00
+
+  [[vix_call_hedge.allocation]]
+  lower_bound = 15.0
+  upper_bound = 30.0
+  weight      = 0.01
+
+  [[vix_call_hedge.allocation]]
+  lower_bound = 30.0
+  upper_bound = 50.0
+  weight      = 0.005
+
+  [[vix_call_hedge.allocation]]
+  lower_bound = 50.0
+  weight      = 0.00
+
+[cash_management]
+# Cash management gives us a way to earn a little extra yield from excess cash
+# sitting in your account. When the cash balance exceeds a threshold, we buy
+# the cash fund, and when the cash balance drops below the cash threshold we
+# sell the cash fund to get back to the target cash balance.
+#
+# Enables cash management
+enabled = false
+
+# The fund to purchase with your cash. Example of cash funds are SGOV or SHV,
+# which are short-term treasury ETFs with reasonable fees. Be sure to check the
+# expense ratio before jumping in on ETFs that appear juicier.
+cash_fund = "SGOV"
+
+# You don't usually need to specify the primary exchange for ETFs, but if you
+# do, you can do so with this:
+# primary_exchange = "NYSE"
+
+# The cash balance to target. This is used as a lower bound, so with a value of
+# 0, we try not to let the cash balance go below zero. Simple enough.
+target_cash_balance = 0
+
+# We don't want to transact too frequently because of commissions, so the buy
+# threshold is the amount above target_cash_balance we need to reach before
+# placing a buy order.
+buy_threshold = 10000
+
+# The sell threshold is the amount below target_cash_balance where we'll place
+# a sell order to shore up cash.
+sell_threshold = 10000
+
+  [cash_management.orders]
+  # The exchange to route orders to. Can be overridden if desired. This is also
+  # used for fetching tickers/prices.
+  exchange = "SMART"
+
+    [cash_management.orders.algo]
+    # By default, use a VWAP order for cash trades. You can comment out the whole
+    # `cash_management.orders` section to use the same value as `orders` and
+    # `orders.algo`.
+    params = [
+      # Optionally, uncomment the following line to be opportunistic by avoiding
+      # taking liquidity. This gives us somewhat better pricing and lower
+      # commissions, at the expense of possibly not getting the order filled in
+      # the day.
+      # ["noTakeLiq", "1"],
+    ]
+    strategy = "Vwap"

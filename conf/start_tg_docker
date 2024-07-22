@@ -1,0 +1,1 @@
+sudo docker run --rm -i --net host     -v /home/noam/thetagang_conf:/etc/thetagang     brndnmtthws/thetagang:main     --config /etc/thetagang/thetagang.toml

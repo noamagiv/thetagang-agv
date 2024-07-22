@@ -1,0 +1,3 @@
+#! /bin/bash
+cd /home/noam/dev/thetagang
+poetry run thetagang --without-ibc -c $1
