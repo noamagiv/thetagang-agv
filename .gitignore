@@ -146,3 +146,6 @@ cython_debug/
 
 # Ignore dotenv/direnv files
 .env*
+
+#configuration
+conf/lin-sum.json
