@@ -1,7 +1,7 @@
 [account]
-number = "U6064545"
+number = "U13733743"
 cancel_orders = true
-margin_usage = 1.0
+margin_usage = 2.0
 market_data_type = 1
 
 [constants]
@@ -163,106 +163,120 @@ minimum_open_interest = 10
 #  [target.calls]
 #  delta = 0.3
 [symbols]
-  [symbols.SPY]
-  weight = 0.3
-  dte = 45
-  delta = 0.25
-      [symbols.SPY.puts]
-        write_threshold = 0.01
-      [symbols.SPY.calls]
-        write_threshold = 0.015
-
+  #-------------Leveraged ETFs----------------
   [symbols.TQQQ]
-  weight = 0.04
-  dte = 60
+  weight = 0.08
+  dte = 45
     [symbols.TQQQ.puts]
     delta = 0.25
-    write_threshold = 0.03
+      write_threshold_sigma = 0.5
     [symbols.TQQQ.calls]
-    delta = 0.25
-    write_threshold = 0.03
-    #write_threshold_sigma = 3.0
-    #cap_factor       = 1.0
-    #cap_target_floor = 0.0
+    delta = 0.35
+      write_threshold_sigma = 0.3
 
   [symbols.SOXL]
-  weight = 0.02
-  dte = 60
+  weight = 0.03
+  dte = 45
   #primary_exchange = "ARCA"
     [symbols.SOXL.puts]
-    delta = 0.3
-    write_threshold = 0.02
+    delta = 0.25
+    write_threshold_sigma = 0.5
     [symbols.SOXL.calls]
-    delta = 0.3
-    write_threshold = 0.02
+    delta = 0.35
+    write_threshold_sigma = 0.3
+
+  [symbols.TNA]
+  weight = 0.04
+  dte = 45
+  #primary_exchange = "ARCA"
+    [symbols.TNA.puts]
+    delta = 0.25
+    write_threshold_sigma = 0.5
+    [symbols.TNA.calls]
+    delta = 0.35
+    write_threshold_sigma = 0.3
+
+  #-------------Equity ETFs----------------
+  [symbols.XLF]
+  weight = 0.1
+  delta = 0.25
+  dte = 45
+  write_threshold_sigma = 0.5
+
+  [symbols.XLE]
+  weight = 0.09
+  delta = 0.25
+  dte = 45
+  write_threshold_sigma = 0.5
+
+  [symbols.XLI]
+  weight = 0.08
+  delta = 0.25
+  dte = 45
+  write_threshold_sigma = 0.5
+
+  [symbols.XLU]
+  weight = 0.05
+  delta = 0.25
+  dte = 45
+  write_threshold_sigma = 0.5
+
+  [symbols.XBI]
+  weight = 0.07
+  delta = 0.25
+  dte = 45
+  write_threshold_sigma = 1.0
+  
+  [symbols.EEM]
+  weight = 0.1
+  delta = 0.25
+  dte = 45
+  write_threshold_sigma = 1.0
+
+  [symbols.TAN]
+  weight = 0.03
+  delta = 0.25
+  dte = 45
+  write_threshold_sigma = 0.5
+
+  [symbols.KWEB]
+  weight = 0.03
+  delta = 0.25
+  dte = 45
+  write_threshold_sigma = 1.0
+
+  [symbols.USO]
+  weight = 0.05
+  delta = 0.25
+  dte = 60
+  write_threshold_sigma = 0.7
 
   [symbols.SLV]
   weight = 0.03
-  write_threshold = 0.02
+  #write_threshold = 0.02
+  write_threshold_sigma = 0.5
   delta = 0.3
 
   [symbols.GDX]
-  weight = 0.04
+  weight = 0.07
   delta = 0.3
-  write_threshold = 0.01
+  #write_threshold = 0.01
+  write_threshold_sigma = 0.7
 
   [symbols.BITO]
   weight = 0.05
   delta = 0.3
-  dte = 60
-    [symbols.BITO.puts]
-    write_threshold = 0.03
-    [symbols.BITO.calls]
-    write_threshold = 0.03
-
-  [symbols.XLF]
-  weight = 0.07
-  delta = 0.25
   dte = 45
-  write_threshold = 0.01
-
-  [symbols.XLE]
-  weight = 0.06
-  delta = 0.25
-  dte = 45
-  write_threshold = 0.01
-
-  [symbols.XBI]
-  weight = 0.05
-  delta = 0.25
-  dte = 45
-  write_threshold = 0.01
-
-
-  [symbols.EEM]
-  weight = 0.03
-  delta = 0.25
-  dte = 45
-  write_threshold = 0.01
+  write_threshold_sigma = 1.0
 
   [symbols.TLT]
   weight = 0.1
   delta = 0.25
   dte = 60
-  write_threshold = 0.005
-
-  [symbols.HYG]
-  weight = 0.05
-  delta = 0.25
-  dte = 60
-  write_threshold = 0.005
-
-  [symbols.IWM]
-  weight = 0.12
-  delta = 0.25
-  dte = 45
-  write_threshold = 0.01
-
-  [symbols.TAN]
-  weight = 0.04
-  delta = 0.25
-  dte = 45
-  write_threshold = 0.02
+    [symbols.TLT.puts]
+      write_threshold_sigma = 0.5
+    [symbols.TLT.calls]
+      write_threshold_sigma = 0.5
 
 [ib_insync]
 logfile = 'ib_insync.log'
