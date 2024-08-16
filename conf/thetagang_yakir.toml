@@ -314,7 +314,8 @@ appStartupTime = 30
 appTimeout     = 20
 clientId       = 1111
 connectTimeout = 5
-host           = '172.29.112.1'
+#host           = '172.29.112.1'
+host           = '192.168.31.214'
 port           = 8888
 probeTimeout   = 10
 readonly       = false
@@ -330,7 +331,7 @@ retryDelay     = 2
 # Tail Hedge Index, described here:
 # https://www.cboe.com/us/indices/dashboard/vxth/
 [vix_call_hedge]
-enabled = false
+enabled = true
 
 # Target delta for calls that are purchased
 delta = 0.30
