@@ -66,7 +66,7 @@ min_pnl = 0.0
   credit_only = false
 
   # If set to false, puts will not be rolled if there are any number of puts in
-  # excess of the target put quantity. A truthy value means thetagang will keep
+  # excess of the target put quantity. A truthy value means theta will keep
   # rolling puts regardless of the total quantity.
   has_excess = true
 
@@ -306,7 +306,7 @@ target_dte = 30
 close_hedges_when_vix_exceeds = 50.0
 
 # Don't count any VIX positions where the DTE is <= this value. Increase this
-# value to create a call ladder. For example, if you set this to 5, thetagang
+# value to create a call ladder. For example, if you set this to 5, theta
 # will ignore current VIX positions starting 5 days before expiry, and
 # potentially adding more. This allows you to create a simple call ladder.
 ignore_dte = 0

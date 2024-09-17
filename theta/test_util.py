@@ -4,7 +4,7 @@ from datetime import date, timedelta
 from ib_insync import Option, Order, PortfolioItem
 from ib_insync.contract import Stock
 
-from thetagang.util import (
+from theta.util import (
     calculate_net_short_positions,
     get_target_delta,
     position_pnl,
@@ -178,17 +178,11 @@ def test_calculate_net_short_positions() -> None:
 
     assert 1 == calculate_net_short_positions([con(exp3dte, 69, "P", -1)], "P")
 
-    assert 1 == calculate_net_short_positions(
-        [con(exp3dte, 69, "P", -1), con(exp3dte, 69, "C", 1)], "P"
-    )
+    assert 1 == calculate_net_short_positions([con(exp3dte, 69, "P", -1), con(exp3dte, 69, "C", 1)], "P")
 
-    assert 0 == calculate_net_short_positions(
-        [con(exp3dte, 69, "P", -1), con(exp3dte, 69, "C", 1)], "C"
-    )
+    assert 0 == calculate_net_short_positions([con(exp3dte, 69, "P", -1), con(exp3dte, 69, "C", 1)], "C")
 
-    assert 0 == calculate_net_short_positions(
-        [con(exp3dte, 69, "C", -1), con(exp3dte, 69, "C", 1)], "C"
-    )
+    assert 0 == calculate_net_short_positions([con(exp3dte, 69, "C", -1), con(exp3dte, 69, "C", 1)], "C")
 
     assert 0 == calculate_net_short_positions(
         [

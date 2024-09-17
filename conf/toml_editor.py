@@ -2,91 +2,92 @@ import toml
 
 
 class TomlEditor:
-  """
-  A class to edit TOML files.
-  """
-
-  def __init__(self, file_path):
-    self.file_path = file_path
-    self.data = {}
-
-  def load(self):
     """
-    Loads the TOML data from the file.
+    A class to edit TOML files.
     """
-    try:
-      with open(self.file_path, "rb") as f:
-        self.data = toml.load(f)
-    except FileNotFoundError:
-      raise FileNotFoundError(f"TOML file not found: {self.file_path}")
 
-  def add(self, key, value, table=None):
-    """
-    Adds a new key-value pair.
+    def __init__(self, file_path):
+        self.file_path = file_path
+        self.data = {}
 
-    Args:
-        key (str): The key to add.
-        value: The value to associate with the key.
-        table (str, optional): The table name for the key within a table. Defaults to None (top-level).
-    """
-    if table:
-      if table not in self.data:
-        self.data[table] = {}
-      self.data[table][key] = value
-    else:
-      self.data[key] = value
+    def load(self):
+        """
+        Loads the TOML data from the file.
+        """
+        try:
+            with open(self.file_path, "rb") as f:
+                self.data = toml.load(f)
+        except FileNotFoundError:
+            raise FileNotFoundError(f"TOML file not found: {self.file_path}")
 
-  def update(self, key, value, table=None):
-    """
-    Updates the value for an existing key.
+    def add(self, key, value, table=None):
+        """
+        Adds a new key-value pair.
 
-    Args:
-        key (str): The key to update.
-        value: The new value for the key.
-        table (str, optional): The table name for the key within a table. Defaults to None (top-level).
+        Args:
+            key (str): The key to add.
+            value: The value to associate with the key.
+            table (str, optional): The table name for the key within a table. Defaults to None (top-level).
+        """
+        if table:
+            if table not in self.data:
+                self.data[table] = {}
+            self.data[table][key] = value
+        else:
+            self.data[key] = value
 
-    Raises:
-        KeyError: If the key is not found.
-    """
-    if table:
-      if table not in self.data:
-        raise KeyError(f"Table not found: {table}")
-      if key not in self.data[table]:
-        raise KeyError(f"Key not found in table {table}: {key}")
-      self.data[table][key] = value
-    else:
-      if key not in self.data:
-        raise KeyError(f"Key not found: {key}")
-      self.data[key] = value
+    def update(self, key, value, table=None):
+        """
+        Updates the value for an existing key.
 
-  def delete(self, key, table=None):
-    """
-    Deletes a key-value pair.
+        Args:
+            key (str): The key to update.
+            value: The new value for the key.
+            table (str, optional): The table name for the key within a table. Defaults to None (top-level).
 
-    Args:
-        key (str): The key to delete.
-        table (str, optional): The table name for the key within a table. Defaults to None (top-level).
+        Raises:
+            KeyError: If the key is not found.
+        """
+        if table:
+            if table not in self.data:
+                raise KeyError(f"Table not found: {table}")
+            if key not in self.data[table]:
+                raise KeyError(f"Key not found in table {table}: {key}")
+            self.data[table][key] = value
+        else:
+            if key not in self.data:
+                raise KeyError(f"Key not found: {key}")
+            self.data[key] = value
 
-    Raises:
-        KeyError: If the key is not found.
-    """
-    if table:
-      if table not in self.data:
-        raise KeyError(f"Table not found: {table}")
-      if key not in self.data[table]:
-        raise KeyError(f"Key not found in table {table}: {key}")
-      del self.data[table][key]
-    else:
-      if key not in self.data:
-        raise KeyError(f"Key not found: {key}")
-      del self.data[key]
+    def delete(self, key, table=None):
+        """
+        Deletes a key-value pair.
 
-  def save(self):
-    """
-    Saves the modified data back to the TOML file.
-    """
-    with open(self.file_path, "w") as f:
-      toml.dump(self.data, f)
+        Args:
+            key (str): The key to delete.
+            table (str, optional): The table name for the key within a table. Defaults to None (top-level).
+
+        Raises:
+            KeyError: If the key is not found.
+        """
+        if table:
+            if table not in self.data:
+                raise KeyError(f"Table not found: {table}")
+            if key not in self.data[table]:
+                raise KeyError(f"Key not found in table {table}: {key}")
+            del self.data[table][key]
+        else:
+            if key not in self.data:
+                raise KeyError(f"Key not found: {key}")
+            del self.data[key]
+
+    def save(self):
+        """
+        Saves the modified data back to the TOML file.
+        """
+        with open(self.file_path, "w") as f:
+            toml.dump(self.data, f)
+
 
 """
 # Example usage

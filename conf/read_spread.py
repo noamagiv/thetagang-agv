@@ -2,7 +2,7 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
 
-def read_sheet(sheet_name)->str:
+def read_sheet(sheet_name) -> str:
     """Reads data from a Google Sheet and prints it to the screen.
 
     Args:
@@ -31,13 +31,14 @@ def read_sheet(sheet_name)->str:
     for row in data:
         if row[0]:
             print(row[0])
-            sectors[row[0]]={"margin":row[1]}
+            sectors[row[0]] = {"margin": row[1]}
             current_sector = sectors[row[0]]
         else:
             current_sector[row[2]] = row[3]
 
     print(sectors)
     return sectors
+
 
 if __name__ == "__main__":
     import sys

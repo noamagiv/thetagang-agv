@@ -19,14 +19,9 @@ daily_stddev_window = "30 D"
 exchange = "SMART"
 price_update_delay = [30, 60]
 minimum_credit = 0.05
-  [orders.algo]
-  strategy = "Adaptive"
-  params = [
-    [
-      "adaptivePriority",
-      "Patient",
-    ],
-  ]
+[orders.algo]
+strategy = "Adaptive"
+params = [["adaptivePriority", "Patient"]]
 
 [option_chains]
 expirations = 4
@@ -34,36 +29,36 @@ strikes = 15
 
 [roll_when]
 pnl = 0.9
-dte     = 15
+dte = 15
 min_pnl = 0.0
 # max_dte = 180 #
 # close_at_pnl = 0.99
-  [roll_when.calls]
-  itm = true 
-  always_when_itm = false
-  credit_only = false
-  has_excess = true
-  maintain_high_water_mark = false
+[roll_when.calls]
+itm = true
+always_when_itm = false
+credit_only = false
+has_excess = true
+maintain_high_water_mark = false
 
-  [roll_when.puts]
-  # Roll puts if they're in the money. Defaults to false if not specified.
-  itm = false
+[roll_when.puts]
+# Roll puts if they're in the money. Defaults to false if not specified.
+itm = false
 
-  # See comments above for `roll_when.calls.always_when_itm` for details on this
-  # option (which behaves the same for puts as with calls).
-  always_when_itm = false
+# See comments above for `roll_when.calls.always_when_itm` for details on this
+# option (which behaves the same for puts as with calls).
+always_when_itm = false
 
-  # Only roll when there's a suitable contract available that will result in a
-  # credit. Enabling this may result in the target delta value being ignored in
-  # circumstances where we can't find a contract that will result in both a
-  # credit _and_ satisfying the target delta (i.e., having a credit takes
-  # precedence).
-  credit_only = false
+# Only roll when there's a suitable contract available that will result in a
+# credit. Enabling this may result in the target delta value being ignored in
+# circumstances where we can't find a contract that will result in both a
+# credit _and_ satisfying the target delta (i.e., having a credit takes
+# precedence).
+credit_only = false
 
-  # If set to false, puts will not be rolled if there are any number of puts in
-  # excess of the target put quantity. A truthy value means thetagang will keep
-  # rolling puts regardless of the total quantity.
-  has_excess = true
+# If set to false, puts will not be rolled if there are any number of puts in
+# excess of the target put quantity. A truthy value means theta will keep
+# rolling puts regardless of the total quantity.
+has_excess = true
 
 [write_when]
 # By default, we ignore long option positions when calculating whether we can
@@ -90,38 +85,38 @@ min_pnl = 0.0
 # excess positions with `roll_when.calls/puts.has_excess = false`.
 calculate_net_contracts = false
 
-  [write_when.calls]
-  # Optionally, only write calls when the underlying is green
-  green = true
-  red   = false
+[write_when.calls]
+# Optionally, only write calls when the underlying is green
+green = true
+red = false
 
-  # With covered calls, we can cap the number of calls to write by this factor. At
-  # 1.0, we write covered calls on 100% of our positions. At 0.5, we'd only write
-  # on 50% of our positions. This value must be between 1 and 0 inclusive.
-  #
-  # This can also be set per-symbol with
-  # `symbols.<symbol>.calls.cap_factor`.
-  cap_factor = 1.0
+# With covered calls, we can cap the number of calls to write by this factor. At
+# 1.0, we write covered calls on 100% of our positions. At 0.5, we'd only write
+# on 50% of our positions. This value must be between 1 and 0 inclusive.
+#
+# This can also be set per-symbol with
+# `symbols.<symbol>.calls.cap_factor`.
+cap_factor = 1.0
 
-  # We may want to leave some percentage of our underlying stock perpetually
-  # uncovered so we don't miss out on big upside movements. For example, if our
-  # target number of shares for a given symbol is 1,000, we may want to ensure
-  # 500 shares are _always_ uncovered. This is a bit different from `cap_factor`,
-  # as it applies to the _target_ number of shares, as opposed to the current
-  # positions. A value of 0.5 (50%) means that we always leave 50% (half) of the
-  # target shares uncovered. A bigger number (up to 1.0, 100%) is more bullish,
-  # and a smaller number (down to 0.0, 0%) is more bearish (i.e., cover all
-  # positions with calls). This essentially sets a floor on the number of shares
-  # we try to hold on to in order to avoid missing out on potential upside.
-  #
-  # This can also be set per-symbol with
-  # `symbols.<symbol>.calls.cap_target_floor`.
-  cap_target_floor = 0.0
+# We may want to leave some percentage of our underlying stock perpetually
+# uncovered so we don't miss out on big upside movements. For example, if our
+# target number of shares for a given symbol is 1,000, we may want to ensure
+# 500 shares are _always_ uncovered. This is a bit different from `cap_factor`,
+# as it applies to the _target_ number of shares, as opposed to the current
+# positions. A value of 0.5 (50%) means that we always leave 50% (half) of the
+# target shares uncovered. A bigger number (up to 1.0, 100%) is more bullish,
+# and a smaller number (down to 0.0, 0%) is more bearish (i.e., cover all
+# positions with calls). This essentially sets a floor on the number of shares
+# we try to hold on to in order to avoid missing out on potential upside.
+#
+# This can also be set per-symbol with
+# `symbols.<symbol>.calls.cap_target_floor`.
+cap_target_floor = 0.0
 
-  [write_when.puts]
-  # Optionally, only write puts when the underlying is red
-  green = false
-  red   = true
+[write_when.puts]
+# Optionally, only write puts when the underlying is red
+green = false
+red = true
 
 [target]
 # Target 45 or more days to expiry
@@ -163,120 +158,120 @@ minimum_open_interest = 10
 #  [target.calls]
 #  delta = 0.3
 [symbols]
-  #-------------Leveraged ETFs----------------
-  [symbols.TQQQ]
-  weight = 0.08
-  dte = 45
-    [symbols.TQQQ.puts]
-    delta = 0.25
-      write_threshold_sigma = 0.5
-    [symbols.TQQQ.calls]
-    delta = 0.35
-      write_threshold_sigma = 0.3
+#-------------Leveraged ETFs----------------
+[symbols.TQQQ]
+weight = 0.08
+dte = 45
+[symbols.TQQQ.puts]
+delta = 0.25
+write_threshold_sigma = 0.5
+[symbols.TQQQ.calls]
+delta = 0.35
+write_threshold_sigma = 0.3
 
-  [symbols.SOXL]
-  weight = 0.03
-  dte = 45
-  #primary_exchange = "ARCA"
-    [symbols.SOXL.puts]
-    delta = 0.25
-    write_threshold_sigma = 0.5
-    [symbols.SOXL.calls]
-    delta = 0.35
-    write_threshold_sigma = 0.3
+[symbols.SOXL]
+weight = 0.03
+dte = 45
+#primary_exchange = "ARCA"
+[symbols.SOXL.puts]
+delta = 0.25
+write_threshold_sigma = 0.5
+[symbols.SOXL.calls]
+delta = 0.35
+write_threshold_sigma = 0.3
 
-  [symbols.TNA]
-  weight = 0.04
-  dte = 45
-  #primary_exchange = "ARCA"
-    [symbols.TNA.puts]
-    delta = 0.25
-    write_threshold_sigma = 0.5
-    [symbols.TNA.calls]
-    delta = 0.35
-    write_threshold_sigma = 0.3
+[symbols.TNA]
+weight = 0.04
+dte = 45
+#primary_exchange = "ARCA"
+[symbols.TNA.puts]
+delta = 0.25
+write_threshold_sigma = 0.5
+[symbols.TNA.calls]
+delta = 0.35
+write_threshold_sigma = 0.3
 
-  #-------------Equity ETFs----------------
-  [symbols.XLF]
-  weight = 0.1
-  delta = 0.25
-  dte = 45
-  write_threshold_sigma = 0.5
+#-------------Equity ETFs----------------
+[symbols.XLF]
+weight = 0.1
+delta = 0.25
+dte = 45
+write_threshold_sigma = 0.5
 
-  [symbols.XLE]
-  weight = 0.09
-  delta = 0.25
-  dte = 45
-  write_threshold_sigma = 0.5
+[symbols.XLE]
+weight = 0.09
+delta = 0.25
+dte = 45
+write_threshold_sigma = 0.5
 
-  [symbols.XLI]
-  weight = 0.08
-  delta = 0.25
-  dte = 45
-  write_threshold_sigma = 0.5
+[symbols.XLI]
+weight = 0.08
+delta = 0.25
+dte = 45
+write_threshold_sigma = 0.5
 
-  [symbols.XLU]
-  weight = 0.05
-  delta = 0.25
-  dte = 45
-  write_threshold_sigma = 0.5
+[symbols.XLU]
+weight = 0.05
+delta = 0.25
+dte = 45
+write_threshold_sigma = 0.5
 
-  [symbols.XBI]
-  weight = 0.07
-  delta = 0.25
-  dte = 45
-  write_threshold_sigma = 1.0
-  
-  [symbols.EEM]
-  weight = 0.1
-  delta = 0.25
-  dte = 45
-  write_threshold_sigma = 1.0
+[symbols.XBI]
+weight = 0.07
+delta = 0.25
+dte = 45
+write_threshold_sigma = 1.0
 
-  [symbols.TAN]
-  weight = 0.03
-  delta = 0.25
-  dte = 45
-  write_threshold_sigma = 0.5
+[symbols.EEM]
+weight = 0.1
+delta = 0.25
+dte = 45
+write_threshold_sigma = 1.0
 
-  [symbols.KWEB]
-  weight = 0.03
-  delta = 0.25
-  dte = 45
-  write_threshold_sigma = 1.0
+[symbols.TAN]
+weight = 0.03
+delta = 0.25
+dte = 45
+write_threshold_sigma = 0.5
 
-  [symbols.USO]
-  weight = 0.05
-  delta = 0.25
-  dte = 60
-  write_threshold_sigma = 0.7
+[symbols.KWEB]
+weight = 0.03
+delta = 0.25
+dte = 45
+write_threshold_sigma = 1.0
 
-  [symbols.SLV]
-  weight = 0.03
-  #write_threshold = 0.02
-  write_threshold_sigma = 0.5
-  delta = 0.3
+[symbols.USO]
+weight = 0.05
+delta = 0.25
+dte = 60
+write_threshold_sigma = 0.7
 
-  [symbols.GDX]
-  weight = 0.07
-  delta = 0.3
-  #write_threshold = 0.01
-  write_threshold_sigma = 0.7
+[symbols.SLV]
+weight = 0.03
+#write_threshold = 0.02
+write_threshold_sigma = 0.5
+delta = 0.3
 
-  [symbols.BITO]
-  weight = 0.05
-  delta = 0.3
-  dte = 45
-  write_threshold_sigma = 1.0
+[symbols.GDX]
+weight = 0.07
+delta = 0.3
+#write_threshold = 0.01
+write_threshold_sigma = 0.7
 
-  [symbols.TLT]
-  weight = 0.1
-  delta = 0.25
-  dte = 60
-    [symbols.TLT.puts]
-      write_threshold_sigma = 0.5
-    [symbols.TLT.calls]
-      write_threshold_sigma = 0.5
+[symbols.BITO]
+weight = 0.05
+delta = 0.3
+dte = 45
+write_threshold_sigma = 1.0
+
+[symbols.TLT]
+weight = 0.1
+delta = 0.25
+dte = 60
+[symbols.TLT.puts]
+write_threshold_sigma = 0.5
+[symbols.TLT.calls]
+write_threshold_sigma = 0.5
 
 [ib_insync]
 logfile = 'ib_insync.log'
@@ -289,15 +284,15 @@ api_response_wait_time = 60
 [ibc]
 # IBC configuration parameters. See
 # https://ib-insync.readthedocs.io/api.html#ibc for details.
-gateway     = false
-ibcPath     = '/opt/ibc'
+gateway = false
+ibcPath = '/opt/ibc'
 tradingMode = 'paper'
 # Set this to true if you want to raise an exception on request errors. Under
 # normal operation this should be false because we often try to make "invalid"
 # requests when scanning option chains for example.
 RaiseRequestErrors = false
-password           = 'demo'
-userid             = 'demo'
+password = 'demo'
+userid = 'demo'
 # Change this to point to your config.ini for IBC
 ibcIni = '/etc/thetagang/config.ini'
 # Change or unset this to use something other than the Docker bundled OpenJDK.
@@ -311,27 +306,28 @@ javaPath = '/opt/java/openjdk/bin'
 # Watchdog configuration params. See
 # https://ib-insync.readthedocs.io/api.html#watchdog for details.
 appStartupTime = 30
-appTimeout     = 20
-clientId       = 1111
+appTimeout = 20
+clientId = 1111
 connectTimeout = 5
 #host           = '172.29.112.1'
-host           = '192.168.31.214'
-port           = 7777
-probeTimeout   = 10
-readonly       = false
-retryDelay     = 2
+#host           = '192.168.31.214'
+host = '127.0.0.1'
+port = 7777
+probeTimeout = 10
+readonly = false
+retryDelay = 2
 
-  [watchdog.probeContract]
-  currency = 'USD'
-  exchange = 'SMART' 
-  secType  = 'STK'
-  symbol   = 'SPY'
+[watchdog.probeContract]
+currency = 'USD'
+exchange = 'SMART'
+secType = 'STK'
+symbol = 'SPY'
 
 # Optional VIX call hedging, based on the methodology described by the Cboe VIX
 # Tail Hedge Index, described here:
 # https://www.cboe.com/us/indices/dashboard/vxth/
 [vix_call_hedge]
-enabled = true
+enabled = false
 
 # Target delta for calls that are purchased
 delta = 0.30
@@ -348,38 +344,38 @@ target_dte = 30
 close_hedges_when_vix_exceeds = 50.0
 
 # Don't count any VIX positions where the DTE is <= this value. Increase this
-# value to create a call ladder. For example, if you set this to 5, thetagang
+# value to create a call ladder. For example, if you set this to 5, theta
 # will ignore current VIX positions starting 5 days before expiry, and
 # potentially adding more. This allows you to create a simple call ladder.
 ignore_dte = 0
 
-  # The allocations are specified as an ordered list of allocation weights
-  # according to an upper/lower bound on VIXMO (the 30 day VIX). Default values
-  # are the same as those described in the VXTH methodology. These are evaluated
-  # in order, and the weight from the first allocation that matches will be
-  # applied. The lower bound is inclusive, and the upper bound is exclusive
-  # (.i.e., the code checks that lower <= VIXMO < upper). The upper/lower bounds
-  # are only checked if they're present.
-  #
-  # The allocation weights are multiplied by the account's net liquidation value,
-  # and that amount is allocated to purchasing VIX calls.
-  [[vix_call_hedge.allocation]]
-  upper_bound = 15.0
-  weight      = 0.00
+# The allocations are specified as an ordered list of allocation weights
+# according to an upper/lower bound on VIXMO (the 30 day VIX). Default values
+# are the same as those described in the VXTH methodology. These are evaluated
+# in order, and the weight from the first allocation that matches will be
+# applied. The lower bound is inclusive, and the upper bound is exclusive
+# (.i.e., the code checks that lower <= VIXMO < upper). The upper/lower bounds
+# are only checked if they're present.
+#
+# The allocation weights are multiplied by the account's net liquidation value,
+# and that amount is allocated to purchasing VIX calls.
+[[vix_call_hedge.allocation]]
+upper_bound = 15.0
+weight = 0.00
 
-  [[vix_call_hedge.allocation]]
-  lower_bound = 15.0
-  upper_bound = 30.0
-  weight      = 0.01
+[[vix_call_hedge.allocation]]
+lower_bound = 15.0
+upper_bound = 30.0
+weight = 0.01
 
-  [[vix_call_hedge.allocation]]
-  lower_bound = 30.0
-  upper_bound = 50.0
-  weight      = 0.005
+[[vix_call_hedge.allocation]]
+lower_bound = 30.0
+upper_bound = 50.0
+weight = 0.005
 
-  [[vix_call_hedge.allocation]]
-  lower_bound = 50.0
-  weight      = 0.00
+[[vix_call_hedge.allocation]]
+lower_bound = 50.0
+weight = 0.00
 
 [cash_management]
 # Cash management gives us a way to earn a little extra yield from excess cash
@@ -412,20 +408,20 @@ buy_threshold = 10000
 # a sell order to shore up cash.
 sell_threshold = 10000
 
-  [cash_management.orders]
-  # The exchange to route orders to. Can be overridden if desired. This is also
-  # used for fetching tickers/prices.
-  exchange = "SMART"
+[cash_management.orders]
+# The exchange to route orders to. Can be overridden if desired. This is also
+# used for fetching tickers/prices.
+exchange = "SMART"
 
-    [cash_management.orders.algo]
-    # By default, use a VWAP order for cash trades. You can comment out the whole
-    # `cash_management.orders` section to use the same value as `orders` and
-    # `orders.algo`.
-    params = [
-      # Optionally, uncomment the following line to be opportunistic by avoiding
-      # taking liquidity. This gives us somewhat better pricing and lower
-      # commissions, at the expense of possibly not getting the order filled in
-      # the day.
-      # ["noTakeLiq", "1"],
-    ]
-    strategy = "Vwap"
+[cash_management.orders.algo]
+# By default, use a VWAP order for cash trades. You can comment out the whole
+# `cash_management.orders` section to use the same value as `orders` and
+# `orders.algo`.
+params = [
+    # Optionally, uncomment the following line to be opportunistic by avoiding
+    # taking liquidity. This gives us somewhat better pricing and lower
+    # commissions, at the expense of possibly not getting the order filled in
+    # the day.
+    # ["noTakeLiq", "1"],
+]
+strategy = "Vwap"

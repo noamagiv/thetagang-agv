@@ -15,7 +15,7 @@ on:
     branches: [main]
 
 env:
-  IMAGE_NAME: thetagang
+  IMAGE_NAME: theta
   DOCKERHUB_ACCOUNT: brndnmtthws
   DOCKER_BUILDKIT: 1
 

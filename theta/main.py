@@ -7,9 +7,7 @@ logger = logging.getLogger(__name__)
 click_log.basic_config(logger)  # type: ignore
 
 
-CONTEXT_SETTINGS = dict(
-    help_option_names=["-h", "--help"], auto_envvar_prefix="THETAGANG"
-)
+CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"], auto_envvar_prefix="THETAGANG")
 
 
 @click.command(context_settings=CONTEXT_SETTINGS)
@@ -19,7 +17,7 @@ CONTEXT_SETTINGS = dict(
     "--config",
     help="Path to toml config",
     required=True,
-    default="thetagang.toml",
+    default="theta.toml",
     type=click.Path(exists=True, readable=True),
 )
 @click.option(
@@ -39,3 +37,7 @@ def cli(config: str, without_ibc: bool) -> None:
     from .thetagang import start
 
     start(config, without_ibc)
+    print("starting")
+
+
+cli()

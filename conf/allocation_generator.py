@@ -6,6 +6,6 @@ import os
 ALLOCATION_FILE = "allocation.csv"
 
 
-path="/home/noam/thetagang/yakir"
+path = "/home/noam/theta/yakir"
 account_name = os.path.basename(path)
 read_sheet(account_name)

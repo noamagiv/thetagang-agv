@@ -8,7 +8,7 @@ import ib_insync.ticker
 from ib_insync import AccountValue, Order, PortfolioItem, TagValue, Ticker, util
 from ib_insync.contract import Option
 
-from thetagang.options import option_dte
+from theta.options import option_dte
 
 
 def account_summary_to_dict(
@@ -36,27 +36,19 @@ def position_pnl(position: ib_insync.objects.PortfolioItem) -> float:
     return position.unrealizedPNL / abs(position.averageCost * position.position)
 
 
-def get_short_positions(
-    positions: List[PortfolioItem], right: str
-) -> List[PortfolioItem]:
+def get_short_positions(positions: List[PortfolioItem], right: str) -> List[PortfolioItem]:
     return [
         p
         for p in positions
-        if isinstance(p.contract, Option)
-        and p.contract.right.upper().startswith(right.upper())
-        and p.position < 0
+        if isinstance(p.contract, Option) and p.contract.right.upper().startswith(right.upper()) and p.position < 0
     ]
 
 
-def get_long_positions(
-    positions: List[PortfolioItem], right: str
-) -> List[PortfolioItem]:
+def get_long_positions(positions: List[PortfolioItem], right: str) -> List[PortfolioItem]:
     return [
         p
         for p in positions
-        if isinstance(p.contract, Option)
-        and p.contract.right.upper().startswith(right.upper())
-        and p.position > 0
+        if isinstance(p.contract, Option) and p.contract.right.upper().startswith(right.upper()) and p.position > 0
     ]
 
 
@@ -64,26 +56,16 @@ def count_short_option_positions(positions: List[PortfolioItem], right: str) -> 
     return math.floor(-sum([p.position for p in get_short_positions(positions, right)]))
 
 
-def weighted_avg_short_strike(
-    positions: List[PortfolioItem], right: str
-) -> Optional[float]:
-    shorts = [
-        (abs(p.position), p.contract.strike)
-        for p in get_short_positions(positions, right)
-    ]
+def weighted_avg_short_strike(positions: List[PortfolioItem], right: str) -> Optional[float]:
+    shorts = [(abs(p.position), p.contract.strike) for p in get_short_positions(positions, right)]
     num = sum([p[0] * p[1] for p in shorts])
     den = sum([p[0] for p in shorts])
     if den > 0:
         return num / den
 
 
-def weighted_avg_long_strike(
-    positions: List[PortfolioItem], right: str
-) -> Optional[float]:
-    shorts = [
-        (abs(p.position), p.contract.strike)
-        for p in get_long_positions(positions, right)
-    ]
+def weighted_avg_long_strike(positions: List[PortfolioItem], right: str) -> Optional[float]:
+    shorts = [(abs(p.position), p.contract.strike) for p in get_long_positions(positions, right)]
     num = sum([p[0] * p[1] for p in shorts])
     den = sum([p[0] for p in shorts])
     if den > 0:
@@ -157,11 +139,7 @@ def net_option_positions(
                     if isinstance(p.contract, Option)
                     and p.contract.right.upper().startswith(right.upper())
                     and option_dte(p.contract.lastTradeDateOrContractMonth) >= 0
-                    and (
-                        not ignore_dte
-                        or option_dte(p.contract.lastTradeDateOrContractMonth)
-                        > ignore_dte
-                    )
+                    and (not ignore_dte or option_dte(p.contract.lastTradeDateOrContractMonth) > ignore_dte)
                 ]
             )
         )
@@ -181,9 +159,7 @@ def wait_n_seconds(
         diff = datetime.now() - started_at
         remaining = seconds_to_wait - diff.seconds
         if not remaining or remaining <= 0 or math.isclose(remaining, 0.0):
-            raise RuntimeError(
-                "Exhausted retries waiting on predicate. This shouldn't happen."
-            )
+            raise RuntimeError("Exhausted retries waiting on predicate. This shouldn't happen.")
         body(remaining)
 
 
@@ -211,11 +187,7 @@ def midpoint_or_market_price(ticker: Ticker) -> float:
     # we often prefer the midpoint over the last price. This function pulls the
     # midpoint first, then falls back to marketPrice() if midpoint is nan.
     if util.isNan(ticker.midpoint()):
-        if (
-            util.isNan(ticker.marketPrice())
-            and ticker.modelGreeks
-            and ticker.modelGreeks.optPrice
-        ):
+        if util.isNan(ticker.marketPrice()) and ticker.modelGreeks and ticker.modelGreeks.optPrice:
             # Fallback to the model price if the greeks are available
             return ticker.modelGreeks.optPrice
         else:
@@ -233,10 +205,7 @@ def get_target_dte(config: Dict[str, Any], symbol: str) -> int:
 
 def get_target_delta(config: Dict[str, Any], symbol: str, right: str) -> float:
     p_or_c = "calls" if right.upper().startswith("C") else "puts"
-    if (
-        p_or_c in config["symbols"][symbol]
-        and "delta" in config["symbols"][symbol][p_or_c]
-    ):
+    if p_or_c in config["symbols"][symbol] and "delta" in config["symbols"][symbol][p_or_c]:
         return config["symbols"][symbol][p_or_c]["delta"]
     if "delta" in config["symbols"][symbol]:
         return config["symbols"][symbol]["delta"]
@@ -246,38 +215,25 @@ def get_target_delta(config: Dict[str, Any], symbol: str, right: str) -> float:
 
 
 def get_cap_factor(config: Dict[str, Any], symbol: str) -> float:
-    if (
-        "calls" in config["symbols"][symbol]
-        and "cap_factor" in config["symbols"][symbol]["calls"]
-    ):
+    if "calls" in config["symbols"][symbol] and "cap_factor" in config["symbols"][symbol]["calls"]:
         return config["symbols"][symbol]["calls"]["cap_factor"]
     return config["write_when"]["calls"]["cap_factor"]
 
 
 def get_cap_target_floor(config: Dict[str, Any], symbol: str) -> float:
-    if (
-        "calls" in config["symbols"][symbol]
-        and "cap_target_floor" in config["symbols"][symbol]["calls"]
-    ):
+    if "calls" in config["symbols"][symbol] and "cap_target_floor" in config["symbols"][symbol]["calls"]:
         return config["symbols"][symbol]["calls"]["cap_target_floor"]
     return config["write_when"]["calls"]["cap_target_floor"]
 
 
-def get_strike_limit(
-    config: Dict[str, Any], symbol: str, right: str
-) -> Optional[float]:
+def get_strike_limit(config: Dict[str, Any], symbol: str, right: str) -> Optional[float]:
     p_or_c = "calls" if right.upper().startswith("C") else "puts"
-    if (
-        p_or_c in config["symbols"][symbol]
-        and "strike_limit" in config["symbols"][symbol][p_or_c]
-    ):
+    if p_or_c in config["symbols"][symbol] and "strike_limit" in config["symbols"][symbol][p_or_c]:
         return config["symbols"][symbol][p_or_c]["strike_limit"]
     return None
 
 
-def get_target_calls(
-    config: Dict[str, Any], symbol: str, current_shares: int, target_shares: int
-) -> int:
+def get_target_calls(config: Dict[str, Any], symbol: str, current_shares: int, target_shares: int) -> int:
     cap_factor = get_cap_factor(config, symbol)
     cap_target_floor = get_cap_target_floor(config, symbol)
     min_uncovered = (target_shares * cap_target_floor) // 100
@@ -287,30 +243,21 @@ def get_target_calls(
     return max([0, math.floor(min([max_covered, total_coverable - min_uncovered]))])
 
 
-def get_write_threshold_sigma(
-    config: Dict[str, Any], symbol: Optional[str], right: str
-) -> Optional[float]:
+def get_write_threshold_sigma(config: Dict[str, Any], symbol: Optional[str], right: str) -> Optional[float]:
     p_or_c = "calls" if right.upper().startswith("C") else "puts"
     if symbol:
-        if (
-            p_or_c in config["symbols"][symbol]
-            and "write_threshold_sigma" in config["symbols"][symbol][p_or_c]
-        ):
+        if p_or_c in config["symbols"][symbol] and "write_threshold_sigma" in config["symbols"][symbol][p_or_c]:
             return config["symbols"][symbol][p_or_c]["write_threshold_sigma"]
         if "write_threshold_sigma" in config["symbols"][symbol]:
             return config["symbols"][symbol]["write_threshold_sigma"]
         # if there's a percentage-based threshold defined, we want to use that, so we return None here
         if (
-            p_or_c in config["symbols"][symbol]
-            and "write_threshold" in config["symbols"][symbol][p_or_c]
+            p_or_c in config["symbols"][symbol] and "write_threshold" in config["symbols"][symbol][p_or_c]
         ) or "write_threshold" in config["symbols"][symbol]:
             return None
 
     # check if there's a default value in constants
-    if (
-        p_or_c in config["constants"]
-        and "write_threshold_sigma" in config["constants"][p_or_c]
-    ):
+    if p_or_c in config["constants"] and "write_threshold_sigma" in config["constants"][p_or_c]:
         return config["constants"][p_or_c]["write_threshold_sigma"]
     if "write_threshold_sigma" in config["constants"]:
         return config["constants"]["write_threshold_sigma"]
@@ -318,24 +265,16 @@ def get_write_threshold_sigma(
     return None
 
 
-def get_write_threshold_perc(
-    config: Dict[str, Any], symbol: Optional[str], right: str
-) -> float:
+def get_write_threshold_perc(config: Dict[str, Any], symbol: Optional[str], right: str) -> float:
     p_or_c = "calls" if right.upper().startswith("C") else "puts"
     if symbol:
-        if (
-            p_or_c in config["symbols"][symbol]
-            and "write_threshold" in config["symbols"][symbol][p_or_c]
-        ):
+        if p_or_c in config["symbols"][symbol] and "write_threshold" in config["symbols"][symbol][p_or_c]:
             return config["symbols"][symbol][p_or_c]["write_threshold"]
         if "write_threshold" in config["symbols"][symbol]:
             return config["symbols"][symbol]["write_threshold"]
 
     # check if there's a default value in constants
-    if (
-        p_or_c in config["constants"]
-        and "write_threshold" in config["constants"][p_or_c]
-    ):
+    if p_or_c in config["constants"] and "write_threshold" in config["constants"][p_or_c]:
         return config["constants"][p_or_c]["write_threshold"]
     if "write_threshold" in config["constants"]:
         return config["constants"]["write_threshold"]
@@ -351,10 +290,7 @@ def get_minimum_credit(config: Dict[str, Any]) -> float:
 
 
 def maintain_high_water_mark(config: Dict[str, Any], symbol: str) -> bool:
-    if (
-        "calls" in config["symbols"][symbol]
-        and "maintain_high_water_mark" in config["symbols"][symbol]["calls"]
-    ):
+    if "calls" in config["symbols"][symbol] and "maintain_high_water_mark" in config["symbols"][symbol]["calls"]:
         return config["symbols"][symbol]["calls"]["maintain_high_water_mark"]
     return config["roll_when"]["calls"]["maintain_high_water_mark"]
 
@@ -377,9 +313,7 @@ def would_increase_spread(order: Order, updated_price: float) -> bool:
     )
 
 
-def can_write_when(
-    config: Dict[str, Any], symbol: str, right: str
-) -> Tuple[bool, bool]:
+def can_write_when(config: Dict[str, Any], symbol: str, right: str) -> Tuple[bool, bool]:
     p_or_c = "calls" if right.upper().startswith("C") else "puts"
     can_write_when_green = (
         config["symbols"][symbol][p_or_c]["write_when"]["green"]

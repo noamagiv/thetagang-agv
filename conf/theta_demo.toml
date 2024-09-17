@@ -1,5 +1,5 @@
 [account]
-number = "U6064545"
+number = "DU3890145"
 cancel_orders = true
 margin_usage = 1.0
 market_data_type = 1
@@ -61,7 +61,7 @@ min_pnl = 0.0
   credit_only = false
 
   # If set to false, puts will not be rolled if there are any number of puts in
-  # excess of the target put quantity. A truthy value means thetagang will keep
+  # excess of the target put quantity. A truthy value means theta will keep
   # rolling puts regardless of the total quantity.
   has_excess = true
 
@@ -300,8 +300,8 @@ appStartupTime = 30
 appTimeout     = 20
 clientId       = 1111
 connectTimeout = 5
-host           = '172.29.112.1'
-port           = 8888
+host           = '127.0.0.1'
+port           = 7777
 probeTimeout   = 10
 readonly       = false
 retryDelay     = 2
@@ -333,7 +333,7 @@ target_dte = 30
 close_hedges_when_vix_exceeds = 50.0
 
 # Don't count any VIX positions where the DTE is <= this value. Increase this
-# value to create a call ladder. For example, if you set this to 5, thetagang
+# value to create a call ladder. For example, if you set this to 5, theta
 # will ignore current VIX positions starting 5 days before expiry, and
 # potentially adding more. This allows you to create a simple call ladder.
 ignore_dte = 0

@@ -27,8 +27,8 @@ from rich.pretty import Pretty
 from rich.progress import track
 from rich.table import Table
 
-from thetagang.fmt import dfmt, ffmt, ifmt, pfmt
-from thetagang.util import (
+from theta.fmt import dfmt, ffmt, ifmt, pfmt
+from theta.util import (
     account_summary_to_dict,
     algo_params_from,
     calculate_net_short_positions,
@@ -75,9 +75,7 @@ class NoValidContractsError(Exception):
 
 
 class PortfolioManager:
-    def __init__(
-        self, config: Dict[str, Dict[str, Any]], ib: IB, completion_future: Future[bool]
-    ) -> None:
+    def __init__(self, config: Dict[str, Dict[str, Any]], ib: IB, completion_future: Future[bool]) -> None:
         self.account_number = config["account"]["number"]
         self.config = config
         self.ib = ib
@@ -104,18 +102,13 @@ class PortfolioManager:
             )
         else:
             console.print(
-                f"[bright_green]Order updated, symbol={trade.contract.symbol}"
-                f" status={trade.orderStatus.status}",
+                f"[bright_green]Order updated, symbol={trade.contract.symbol}" f" status={trade.orderStatus.status}",
             )
 
-    def get_short_calls(
-        self, portfolio_positions: Dict[str, List[PortfolioItem]]
-    ) -> List[PortfolioItem]:
+    def get_short_calls(self, portfolio_positions: Dict[str, List[PortfolioItem]]) -> List[PortfolioItem]:
         return self.get_short_contracts(portfolio_positions, "C")
 
-    def get_short_puts(
-        self, portfolio_positions: Dict[str, List[PortfolioItem]]
-    ) -> List[PortfolioItem]:
+    def get_short_puts(self, portfolio_positions: Dict[str, List[PortfolioItem]]) -> List[PortfolioItem]:
         return self.get_short_contracts(portfolio_positions, "P")
 
     def get_short_contracts(
@@ -215,14 +208,10 @@ class PortfolioManager:
 
     @lru_cache(maxsize=32)
     def get_chains_for_contract(self, contract: Index) -> List[OptionChain]:
-        return self.ib.reqSecDefOptParams(
-            contract.symbol, "", contract.secType, contract.conId
-        )
+        return self.ib.reqSecDefOptParams(contract.symbol, "", contract.secType, contract.conId)
 
     @lru_cache(maxsize=32)
-    def get_ticker_for_stock(
-        self, symbol: str, primary_exchange: str, order_exchange: None = None
-    ) -> Ticker:
+    def get_ticker_for_stock(self, symbol: str, primary_exchange: str, order_exchange: None = None) -> Ticker:
         stock = Stock(
             symbol,
             order_exchange or self.get_order_exchange(),
@@ -237,9 +226,7 @@ class PortfolioManager:
         [ticker] = self.ib.reqTickers(contract)
 
         if midpoint:
-            self.wait_for_midpoint_price(
-                ticker, wait_time=self.api_response_wait_time()
-            )
+            self.wait_for_midpoint_price(ticker, wait_time=self.api_response_wait_time())
         else:
             self.wait_for_market_price(ticker, wait_time=self.api_response_wait_time())
 
@@ -313,10 +300,7 @@ class PortfolioManager:
             return False
 
         # Don't roll if there are excess puts and we're configured not to roll
-        if (
-            put.contract.symbol in self.has_excess_puts
-            and not self.config["roll_when"]["puts"]["has_excess"]
-        ):
+        if put.contract.symbol in self.has_excess_puts and not self.config["roll_when"]["puts"]["has_excess"]:
             table.add_row(
                 f"{put.contract.localSymbol}",
                 "[cyan1]None",
@@ -331,10 +315,7 @@ class PortfolioManager:
         roll_when_pnl = self.config["roll_when"]["pnl"]
         roll_when_min_pnl = self.config["roll_when"]["min_pnl"]
 
-        if (
-            "max_dte" in self.config["roll_when"]
-            and dte > self.config["roll_when"]["max_dte"]
-        ):
+        if "max_dte" in self.config["roll_when"] and dte > self.config["roll_when"]["max_dte"]:
             return False
 
         if dte <= roll_when_dte:
@@ -411,10 +392,7 @@ class PortfolioManager:
             return False
 
         # Don't roll if there are excess CCs and we're configured not to roll
-        if (
-            call.contract.symbol in self.has_excess_calls
-            and not self.config["roll_when"]["calls"]["has_excess"]
-        ):
+        if call.contract.symbol in self.has_excess_calls and not self.config["roll_when"]["calls"]["has_excess"]:
             table.add_row(
                 f"{call.contract.localSymbol}",
                 "[cyan1]None",
@@ -429,10 +407,7 @@ class PortfolioManager:
         roll_when_pnl = self.config["roll_when"]["pnl"]
         roll_when_min_pnl = self.config["roll_when"]["min_pnl"]
 
-        if (
-            "max_dte" in self.config["roll_when"]
-            and dte > self.config["roll_when"]["max_dte"]
-        ):
+        if "max_dte" in self.config["roll_when"] and dte > self.config["roll_when"]["max_dte"]:
             return False
 
         if dte <= roll_when_dte:
@@ -471,9 +446,7 @@ class PortfolioManager:
     def get_symbols(self) -> List[str]:
         return list(self.config["symbols"].keys())
 
-    def filter_positions(
-        self, portfolio_positions: List[PortfolioItem]
-    ) -> List[PortfolioItem]:
+    def filter_positions(self, portfolio_positions: List[PortfolioItem]) -> List[PortfolioItem]:
         symbols = self.get_symbols()
         return [
             item
@@ -501,14 +474,10 @@ class PortfolioManager:
             for trade in open_trades:
                 if not trade.isDone() and (
                     trade.contract.symbol in self.get_symbols()
-                    or (
-                        self.config["vix_call_hedge"]["enabled"]
-                        and trade.contract.symbol == "VIX"
-                    )
+                    or (self.config["vix_call_hedge"]["enabled"] and trade.contract.symbol == "VIX")
                     or (
                         self.config["cash_management"]["enabled"]
-                        and trade.contract.symbol
-                        == self.config["cash_management"]["cash_fund"]
+                        and trade.contract.symbol == self.config["cash_management"]["cash_fund"]
                     )
                 ):
                     console.print(f"[red]Canceling order {trade.order}[/red]")
@@ -531,23 +500,15 @@ class PortfolioManager:
         table = Table(title="Account summary")
         table.add_column("Item")
         table.add_column("Value", justify="right")
-        table.add_row(
-            "Net liquidation", dfmt(account_summary["NetLiquidation"].value, 0)
-        )
-        table.add_row(
-            "Excess liquidity", dfmt(account_summary["ExcessLiquidity"].value, 0)
-        )
+        table.add_row("Net liquidation", dfmt(account_summary["NetLiquidation"].value, 0))
+        table.add_row("Excess liquidity", dfmt(account_summary["ExcessLiquidity"].value, 0))
         table.add_row("Initial margin", dfmt(account_summary["InitMarginReq"].value, 0))
-        table.add_row(
-            "Maintenance margin", dfmt(account_summary["FullMaintMarginReq"].value, 0)
-        )
+        table.add_row("Maintenance margin", dfmt(account_summary["FullMaintMarginReq"].value, 0))
         table.add_row("Buying power", dfmt(account_summary["BuyingPower"].value, 0))
         table.add_row("Total cash", dfmt(account_summary["TotalCashValue"].value, 0))
         table.add_row("Cushion", pfmt(account_summary["Cushion"].value, 0))
         table.add_section()
-        table.add_row(
-            "Target buying power usage", dfmt(self.get_buying_power(account_summary), 0)
-        )
+        table.add_row("Target buying power usage", dfmt(self.get_buying_power(account_summary), 0))
         console.print(Panel(table))
 
         portfolio_positions = self.get_portfolio_positions()
@@ -556,24 +517,16 @@ class PortfolioManager:
 
         def is_itm(pos: PortfolioItem) -> str:
             if isinstance(pos.contract, Option):
-                if pos.contract.right.startswith("C") and self.call_is_itm(
-                    pos.contract
-                ):
+                if pos.contract.right.startswith("C") and self.call_is_itm(pos.contract):
                     return "✔️"
                 if pos.contract.right.startswith("P") and self.put_is_itm(pos.contract):
                     return "✔️"
             return ""
 
-        for symbol, position in track(
-            portfolio_positions.items(), description="Loading portfolio positions..."
-        ):
+        for symbol, position in track(portfolio_positions.items(), description="Loading portfolio positions..."):
             for pos in position:
                 position_values[pos.contract.conId] = {
-                    "qty": (
-                        ifmt(int(pos.position))
-                        if pos.position.is_integer()
-                        else ffmt(pos.position, 4)
-                    ),
+                    "qty": (ifmt(int(pos.position)) if pos.position.is_integer() else ffmt(pos.position, 4)),
                     "mktprice": dfmt(pos.marketPrice),
                     "avgprice": dfmt(pos.averageCost),
                     "value": dfmt(pos.marketValue, 0),
@@ -586,15 +539,11 @@ class PortfolioManager:
                     position_values[pos.contract.conId]["avgprice"] = dfmt(
                         pos.averageCost / float(pos.contract.multiplier)
                     )
-                    position_values[pos.contract.conId]["strike"] = dfmt(
-                        pos.contract.strike
-                    )
+                    position_values[pos.contract.conId]["strike"] = dfmt(pos.contract.strike)
                     position_values[pos.contract.conId]["dte"] = str(
                         option_dte(pos.contract.lastTradeDateOrContractMonth)
                     )
-                    position_values[pos.contract.conId]["exp"] = str(
-                        pos.contract.lastTradeDateOrContractMonth
-                    )
+                    position_values[pos.contract.conId]["exp"] = str(pos.contract.lastTradeDateOrContractMonth)
 
         table = Table(
             title="Portfolio positions",
@@ -622,9 +571,7 @@ class PortfolioManager:
             sorted_positions = sorted(
                 position,
                 key=lambda p: (
-                    option_dte(p.contract.lastTradeDateOrContractMonth)
-                    if isinstance(p.contract, Option)
-                    else -1
+                    option_dte(p.contract.lastTradeDateOrContractMonth) if isinstance(p.contract, Option) else -1
                 ),  # Keep stonks on top
             )
 
@@ -696,19 +643,13 @@ class PortfolioManager:
             # Refresh positions, in case anything changed from the orders above
             portfolio_positions = self.get_portfolio_positions()
 
-            (rollable_puts, closeable_puts, group1) = self.check_puts(
-                portfolio_positions
-            )
-            (rollable_calls, closeable_calls, group2) = self.check_calls(
-                portfolio_positions
-            )
+            (rollable_puts, closeable_puts, group1) = self.check_puts(portfolio_positions)
+            (rollable_calls, closeable_calls, group2) = self.check_calls(portfolio_positions)
             console.print(Panel(Group(group1, group2)))
 
             closeable_puts += self.roll_puts(rollable_puts, account_summary)
             self.close_puts(closeable_puts)
-            closeable_calls += self.roll_calls(
-                rollable_calls, account_summary, portfolio_positions
-            )
+            closeable_calls += self.roll_calls(rollable_calls, account_summary, portfolio_positions)
             self.close_calls(closeable_calls)
 
             # check if we should do VIX call hedging
@@ -728,9 +669,7 @@ class PortfolioManager:
 
             self.wait_for_pending_orders()
 
-            console.print(
-                "[bright_yellow]ThetaGang is done, shutting down! Cya next time. :sparkles:[/bright_yellow]"
-            )
+            console.print("[bright_yellow]ThetaGang is done, shutting down! Cya next time. :sparkles:[/bright_yellow]")
 
         except:
             console.print_exception()
@@ -740,9 +679,7 @@ class PortfolioManager:
             # Shut it down
             self.completion_future.set_result(True)
 
-    def check_puts(
-        self, portfolio_positions: Dict[str, List[PortfolioItem]]
-    ) -> Tuple[List[Any], List[Any], Group]:
+    def check_puts(self, portfolio_positions: Dict[str, List[PortfolioItem]]) -> Tuple[List[Any], List[Any], Group]:
         # Check for puts which may be rolled to the next expiration or a better price
         puts = self.get_short_puts(portfolio_positions)
         # Filter out an VIX positions
@@ -764,9 +701,7 @@ class PortfolioManager:
                 closeable_puts.append(put)
 
         total_rollable_puts = math.floor(sum([abs(p.position) for p in rollable_puts]))
-        total_closeable_puts = math.floor(
-            sum([abs(p.position) for p in closeable_puts])
-        )
+        total_closeable_puts = math.floor(sum([abs(p.position) for p in closeable_puts]))
 
         text1 = f"[magenta]{total_rollable_puts} puts can be rolled"
         text2 = f"[magenta]{total_closeable_puts} puts can be closed"
@@ -778,9 +713,7 @@ class PortfolioManager:
 
         return (rollable_puts, closeable_puts, group)
 
-    def check_calls(
-        self, portfolio_positions: Dict[str, List[PortfolioItem]]
-    ) -> Tuple[List[Any], List[Any], Group]:
+    def check_calls(self, portfolio_positions: Dict[str, List[PortfolioItem]]) -> Tuple[List[Any], List[Any], Group]:
         # Check for calls which may be rolled to the next expiration or a better price
         calls = self.get_short_calls(portfolio_positions)
         # Filter out an VIX positions
@@ -801,12 +734,8 @@ class PortfolioManager:
             elif self.call_can_be_closed(c, table):
                 closeable_calls.append(c)
 
-        total_rollable_calls = math.floor(
-            sum([abs(p.position) for p in rollable_calls])
-        )
-        total_closeable_calls = math.floor(
-            sum([abs(p.position) for p in closeable_calls])
-        )
+        total_rollable_calls = math.floor(sum([abs(p.position) for p in rollable_calls]))
+        total_closeable_calls = math.floor(sum([abs(p.position) for p in closeable_calls]))
 
         text1 = f"[magenta]{total_rollable_calls} calls can be rolled"
         text2 = f"[magenta]{total_closeable_calls} calls can be closed"
@@ -825,9 +754,7 @@ class PortfolioManager:
         account_summary: Dict[str, AccountValue],
     ) -> int:
         total_buying_power = self.get_buying_power(account_summary)
-        max_buying_power = (
-            self.config["target"]["maximum_new_contracts_percent"] * total_buying_power
-        )
+        max_buying_power = self.config["target"]["maximum_new_contracts_percent"] * total_buying_power
         ticker = self.get_ticker_for_stock(
             symbol,
             primary_exchange,
@@ -858,30 +785,18 @@ class PortfolioManager:
                 else count_short_option_positions(portfolio_positions[symbol], "C")
             )
             stock_count = math.floor(
-                sum(
-                    [
-                        p.position
-                        for p in portfolio_positions[symbol]
-                        if isinstance(p.contract, Stock)
-                    ]
-                )
+                sum([p.position for p in portfolio_positions[symbol] if isinstance(p.contract, Stock)])
             )
             strike_limit = math.ceil(
                 max(
                     [
                         get_strike_limit(self.config, symbol, "C") or 0,
                     ]
-                    + [
-                        p.averageCost or 0
-                        for p in portfolio_positions[symbol]
-                        if isinstance(p.contract, Stock)
-                    ]
+                    + [p.averageCost or 0 for p in portfolio_positions[symbol] if isinstance(p.contract, Stock)]
                 )
             )
 
-            target_short_calls = get_target_calls(
-                self.config, symbol, stock_count, self.target_quantities[symbol]
-            )
+            target_short_calls = get_target_calls(self.config, symbol, stock_count, self.target_quantities[symbol])
             new_contracts_needed = target_short_calls - short_call_count
             excess_calls = short_call_count - target_short_calls
 
@@ -899,13 +814,9 @@ class PortfolioManager:
                 self.get_primary_exchange(symbol),
                 account_summary,
             )
-            calls_to_write = max(
-                [0, min([new_contracts_needed, maximum_new_contracts])]
-            )
+            calls_to_write = max([0, min([new_contracts_needed, maximum_new_contracts])])
 
-            ticker = self.get_ticker_for_stock(
-                symbol, self.get_primary_exchange(symbol)
-            )
+            ticker = self.get_ticker_for_stock(symbol, self.get_primary_exchange(symbol))
 
             (write_threshold, absolute_daily_change) = (None, None)
 
@@ -918,9 +829,7 @@ class PortfolioManager:
                 if not ticker or calls_to_write <= 0:
                     return False
 
-                (can_write_when_green, can_write_when_red) = can_write_when(
-                    self.config, symbol, "C"
-                )
+                (can_write_when_green, can_write_when_red) = can_write_when(self.config, symbol, "C")
 
                 if not can_write_when_green and ticker.marketPrice() > ticker.close:
                     call_actions_table.add_row(
@@ -937,9 +846,7 @@ class PortfolioManager:
                     )
                     return False
 
-                (write_threshold, absolute_daily_change) = self.get_write_threshold(
-                    ticker, "C"
-                )
+                (write_threshold, absolute_daily_change) = self.get_write_threshold(ticker, "C")
                 if absolute_daily_change < write_threshold:
                     call_actions_table.add_row(
                         symbol,
@@ -995,9 +902,7 @@ class PortfolioManager:
                 )
                 continue
 
-            if not self.wait_for_midpoint_price(
-                sell_ticker, wait_time=self.api_response_wait_time()
-            ):
+            if not self.wait_for_midpoint_price(sell_ticker, wait_time=self.api_response_wait_time()):
                 console.print(
                     f"[red]Couldn't get midpoint price for contract={sell_ticker.contract}, skipping for now",
                 )
@@ -1038,9 +943,7 @@ class PortfolioManager:
                 )
                 continue
 
-            if not self.wait_for_midpoint_price(
-                sell_ticker, wait_time=self.api_response_wait_time()
-            ):
+            if not self.wait_for_midpoint_price(sell_ticker, wait_time=self.api_response_wait_time()):
                 console.print(
                     f"[red]Couldn't get midpoint price for contract={sell_ticker.contract}, skipping for now",
                 )
@@ -1064,10 +967,7 @@ class PortfolioManager:
         return self.config["symbols"][symbol].get("primary_exchange", "")
 
     def get_buying_power(self, account_summary: Dict[str, AccountValue]) -> int:
-        return math.floor(
-            float(account_summary["NetLiquidation"].value)
-            * self.config["account"]["margin_usage"]
-        )
+        return math.floor(float(account_summary["NetLiquidation"].value) * self.config["account"]["margin_usage"])
 
     def check_if_can_write_puts(
         self,
@@ -1119,78 +1019,40 @@ class PortfolioManager:
         put_actions_table.add_column("Detail")
 
         # Determine target quantity of each stock
-        for symbol in track(
-            self.config["symbols"].keys(), description="Calculating target positions..."
-        ):
-            ticker = self.get_ticker_for_stock(
-                symbol, self.get_primary_exchange(symbol)
-            )
+        for symbol in track(self.config["symbols"].keys(), description="Calculating target positions..."):
+            ticker = self.get_ticker_for_stock(symbol, self.get_primary_exchange(symbol))
 
-            current_position = math.floor(
-                stock_symbols[symbol].position if symbol in stock_symbols else 0
-            )
+            current_position = math.floor(stock_symbols[symbol].position if symbol in stock_symbols else 0)
 
-            targets[symbol] = round(
-                self.config["symbols"][symbol]["weight"] * total_buying_power, 2
-            )
+            targets[symbol] = round(self.config["symbols"][symbol]["weight"] * total_buying_power, 2)
             market_price = ticker.marketPrice()
-            if (
-                not market_price
-                or math.isnan(market_price)
-                or math.isclose(market_price, 0)
-            ):
-                console.print(
-                    f"[red]Invalid market price for {symbol} (market_price={market_price}), skipping for now"
-                )
+            if not market_price or math.isnan(market_price) or math.isclose(market_price, 0):
+                console.print(f"[red]Invalid market price for {symbol} (market_price={market_price}), skipping for now")
                 continue
             self.target_quantities[symbol] = math.floor(targets[symbol] / market_price)
 
             if symbol in portfolio_positions:
                 # Current number of puts
-                net_short_put_count = short_put_count = count_short_option_positions(
-                    portfolio_positions[symbol], "P"
-                )
-                short_put_avg_strike = weighted_avg_short_strike(
-                    portfolio_positions[symbol], "P"
-                )
-                long_put_count = count_long_option_positions(
-                    portfolio_positions[symbol], "P"
-                )
-                long_put_avg_strike = weighted_avg_long_strike(
-                    portfolio_positions[symbol], "P"
-                )
+                net_short_put_count = short_put_count = count_short_option_positions(portfolio_positions[symbol], "P")
+                short_put_avg_strike = weighted_avg_short_strike(portfolio_positions[symbol], "P")
+                long_put_count = count_long_option_positions(portfolio_positions[symbol], "P")
+                long_put_avg_strike = weighted_avg_long_strike(portfolio_positions[symbol], "P")
                 # Current number of calls
-                net_short_call_count = short_call_count = count_short_option_positions(
-                    portfolio_positions[symbol], "C"
-                )
-                short_call_avg_strike = weighted_avg_short_strike(
-                    portfolio_positions[symbol], "C"
-                )
-                long_call_count = count_long_option_positions(
-                    portfolio_positions[symbol], "C"
-                )
-                long_call_avg_strike = weighted_avg_long_strike(
-                    portfolio_positions[symbol], "C"
-                )
+                net_short_call_count = short_call_count = count_short_option_positions(portfolio_positions[symbol], "C")
+                short_call_avg_strike = weighted_avg_short_strike(portfolio_positions[symbol], "C")
+                long_call_count = count_long_option_positions(portfolio_positions[symbol], "C")
+                long_call_avg_strike = weighted_avg_long_strike(portfolio_positions[symbol], "C")
 
                 if calculate_net_contracts:
-                    net_short_put_count = calculate_net_short_positions(
-                        portfolio_positions[symbol], "P"
-                    )
-                    net_short_call_count = calculate_net_short_positions(
-                        portfolio_positions[symbol], "C"
-                    )
+                    net_short_put_count = calculate_net_short_positions(portfolio_positions[symbol], "P")
+                    net_short_call_count = calculate_net_short_positions(portfolio_positions[symbol], "C")
             else:
                 net_short_put_count = short_put_count = long_put_count = 0
                 short_put_avg_strike = long_put_avg_strike = None
                 net_short_call_count = short_call_count = long_call_count = 0
                 short_call_avg_strike = long_call_avg_strike = None
 
-            qty_to_write = math.floor(
-                self.target_quantities[symbol]
-                - current_position
-                - 100 * net_short_put_count
-            )
+            qty_to_write = math.floor(self.target_quantities[symbol] - current_position - 100 * net_short_put_count)
             net_target_shares = qty_to_write
             net_target_puts = net_target_shares // 100
 
@@ -1249,9 +1111,7 @@ class PortfolioManager:
                 if puts_to_write <= 0:
                     return False
 
-                (can_write_when_green, can_write_when_red) = can_write_when(
-                    self.config, symbol, "P"
-                )
+                (can_write_when_green, can_write_when_red) = can_write_when(self.config, symbol, "P")
 
                 if not can_write_when_green and ticker.marketPrice() > ticker.close:
                     put_actions_table.add_row(
@@ -1268,9 +1128,7 @@ class PortfolioManager:
                     )
                     return False
 
-                (write_threshold, absolute_daily_change) = self.get_write_threshold(
-                    ticker, "P"
-                )
+                (write_threshold, absolute_daily_change) = self.get_write_threshold(ticker, "P")
                 if absolute_daily_change < write_threshold:
                     put_actions_table.add_row(
                         symbol,
@@ -1332,8 +1190,7 @@ class PortfolioManager:
                 put_actions_table.add_row(
                     symbol,
                     "[yellow]None",
-                    "[yellow]Warning: excess positions based "
-                    "on net liquidation and target margin usage",
+                    "[yellow]Warning: excess positions based " "on net liquidation and target margin usage",
                 )
 
         return (positions_summary_table, put_actions_table, to_write)
@@ -1365,11 +1222,7 @@ class PortfolioManager:
                 position.contract.exchange = self.get_order_exchange()
                 ticker = self.get_ticker_for(position.contract, midpoint=True)
                 is_short = position.position < 0
-                price = (
-                    round(get_lower_price(ticker), 2)
-                    if is_short
-                    else round(get_higher_price(ticker), 2)
-                )
+                price = round(get_lower_price(ticker), 2) if is_short else round(get_higher_price(ticker), 2)
                 if util.isNan(price):
                     console.print(
                         f"[yellow]Unable to close {position.contract.localSymbol} "
@@ -1417,11 +1270,7 @@ class PortfolioManager:
                 strike_limit = get_strike_limit(self.config, symbol, right)
                 if right.startswith("C"):
                     average_cost = (
-                        [
-                            p.averageCost
-                            for p in portfolio_positions[symbol]
-                            if isinstance(p.contract, Stock)
-                        ]
+                        [p.averageCost for p in portfolio_positions[symbol] if isinstance(p.contract, Stock)]
                         if portfolio_positions and symbol in portfolio_positions
                         else [0]
                     )
@@ -1441,10 +1290,7 @@ class PortfolioManager:
                                     [
                                         position.contract.strike,
                                         position.contract.strike
-                                        + (
-                                            position.averageCost
-                                            / float(position.contract.multiplier)
-                                        )
+                                        + (position.averageCost / float(position.contract.multiplier))
                                         - midpoint_or_market_price(buy_ticker),
                                     ]
                                 )
@@ -1458,10 +1304,7 @@ class PortfolioManager:
                 minimum_price = (
                     (lambda: get_minimum_credit(self.config))
                     if not self.config["roll_when"][kind]["credit_only"]
-                    else (
-                        lambda: midpoint_or_market_price(buy_ticker)
-                        + get_minimum_credit(self.config)
-                    )
+                    else (lambda: midpoint_or_market_price(buy_ticker) + get_minimum_credit(self.config))
                 )
 
                 def fallback_minimum_price() -> float:
@@ -1498,9 +1341,7 @@ class PortfolioManager:
                 if from_dte > roll_when_dte:
                     qty_to_roll = min([qty_to_roll, maximum_new_contracts])
 
-                price = midpoint_or_market_price(buy_ticker) - midpoint_or_market_price(
-                    sell_ticker
-                )
+                price = midpoint_or_market_price(buy_ticker) - midpoint_or_market_price(sell_ticker)
                 # a buy order should be at most the minimum price, when we expect a credit
                 price = (
                     min([price, -get_minimum_credit(self.config)])
@@ -1510,9 +1351,7 @@ class PortfolioManager:
 
                 # store a copy of the contracts so we can retrieve them later by conId
                 self.qualified_contracts[position.contract.conId] = position.contract
-                self.qualified_contracts[sell_ticker.contract.conId] = (
-                    sell_ticker.contract
-                )
+                self.qualified_contracts[sell_ticker.contract.conId] = sell_ticker.contract
 
                 # Create combo legs
                 comboLegs = [
@@ -1594,15 +1433,9 @@ class PortfolioManager:
         target_dte: Optional[int] = None,
         target_delta: Optional[float] = None,
     ) -> Ticker:
-        contract_target_dte: int = (
-            target_dte
-            if target_dte
-            else get_target_dte(self.config, main_contract.symbol)
-        )
+        contract_target_dte: int = target_dte if target_dte else get_target_dte(self.config, main_contract.symbol)
         contract_target_delta: float = (
-            target_delta
-            if target_delta
-            else get_target_delta(self.config, main_contract.symbol, right)
+            target_delta if target_delta else get_target_delta(self.config, main_contract.symbol, right)
         )
         contract_max_dte = get_max_dte_for(main_contract.symbol, self.config)
 
@@ -1614,9 +1447,7 @@ class PortfolioManager:
             f"contract_target_delta={contract_target_delta}, "
             "this can take a while...",
         )
-        with console.status(
-            "[bold blue_violet]Hunting for juicy contracts... 😎"
-        ) as status:
+        with console.status("[bold blue_violet]Hunting for juicy contracts... 😎") as status:
             self.ib.qualifyContracts(main_contract)
 
             main_contract_ticker = self.get_ticker_for(main_contract, midpoint=True)
@@ -1637,11 +1468,7 @@ class PortfolioManager:
                 return False
 
             chain_expirations = self.config["option_chains"]["expirations"]
-            min_dte = (
-                option_dte(exclude_expirations_before)
-                if exclude_expirations_before
-                else 0
-            )
+            min_dte = option_dte(exclude_expirations_before) if exclude_expirations_before else 0
             strikes = sorted(strike for strike in chain.strikes if valid_strike(strike))
             expirations = sorted(
                 exp
@@ -1693,10 +1520,7 @@ class PortfolioManager:
                 contracts = [
                     c
                     for c in contracts
-                    if (
-                        c.lastTradeDateOrContractMonth != exclude_exp_strike[1]
-                        or c.strike != exclude_exp_strike[0]
-                    )
+                    if (c.lastTradeDateOrContractMonth != exclude_exp_strike[1] or c.strike != exclude_exp_strike[0])
                 ]
 
             status.update(
@@ -1707,9 +1531,7 @@ class PortfolioManager:
                 f"[bold blue_violet]Filtering contracts for {main_contract.symbol} from {len(tickers)} tickers... 🧐"
             )
 
-            def open_interest_is_valid(
-                ticker: Ticker, minimum_open_interest: int
-            ) -> bool:
+            def open_interest_is_valid(ticker: Ticker, minimum_open_interest: int) -> bool:
                 # The open interest value is never present when using historical
                 # data, so just ignore it when the value is None
                 if right.startswith("P"):
@@ -1736,18 +1558,13 @@ class PortfolioManager:
                     return (
                         right.startswith("C")
                         or isinstance(ticker.contract, Option)
-                        and ticker.contract.strike
-                        <= midpoint_or_market_price(ticker) + underlying_price
+                        and ticker.contract.strike <= midpoint_or_market_price(ticker) + underlying_price
                     )
 
-                return midpoint_or_market_price(
-                    ticker
-                ) > minimum_price() and cost_doesnt_exceed_market_price(ticker)
+                return midpoint_or_market_price(ticker) > minimum_price() and cost_doesnt_exceed_market_price(ticker)
 
             # Filter out tickers with invalid or unavailable prices
-            self.wait_for_market_price_for(
-                tickers, wait_time=self.api_response_wait_time()
-            )
+            self.wait_for_market_price_for(tickers, wait_time=self.api_response_wait_time())
             status.stop()
             tickers = [
                 ticker
@@ -1763,19 +1580,13 @@ class PortfolioManager:
             self.wait_for_greeks_for(tickers, wait_time=self.api_response_wait_time())
             delta_reject_tickers, tickers = partition(delta_is_valid, tickers)
 
-            def filter_remaining_tickers(
-                tickers: List[Ticker], delta_ord_desc: bool
-            ) -> List[Ticker]:
+            def filter_remaining_tickers(tickers: List[Ticker], delta_ord_desc: bool) -> List[Ticker]:
                 # Fetch market data for open interest
                 tickers = [
-                    self.ib.reqMktData(ticker.contract, genericTickList="101")
-                    for ticker in tickers
-                    if ticker.contract
+                    self.ib.reqMktData(ticker.contract, genericTickList="101") for ticker in tickers if ticker.contract
                 ]
                 # Filter by open interest
-                self.wait_for_open_interest_for(
-                    tickers, wait_time=self.api_response_wait_time()
-                )
+                self.wait_for_open_interest_for(tickers, wait_time=self.api_response_wait_time())
 
                 minimum_open_interest = self.config["target"]["minimum_open_interest"]
                 if minimum_open_interest > 0:
@@ -1794,18 +1605,10 @@ class PortfolioManager:
                 tickers = sorted(
                     sorted(
                         tickers,
-                        key=lambda t: (
-                            abs(t.modelGreeks.delta)
-                            if t.modelGreeks and t.modelGreeks.delta
-                            else 0
-                        ),
+                        key=lambda t: (abs(t.modelGreeks.delta) if t.modelGreeks and t.modelGreeks.delta else 0),
                         reverse=delta_ord_desc,
                     ),
-                    key=lambda t: (
-                        option_dte(t.contract.lastTradeDateOrContractMonth)
-                        if t.contract
-                        else 0
-                    ),
+                    key=lambda t: (option_dte(t.contract.lastTradeDateOrContractMonth) if t.contract else 0),
                 )
 
                 return tickers
@@ -1822,9 +1625,7 @@ class PortfolioManager:
                     #
                     # because of this, we'll allow rolling to a less-than-optimal
                     # strike, provided it's still a credit
-                    tickers = filter_remaining_tickers(
-                        list(delta_reject_tickers), False
-                    )
+                    tickers = filter_remaining_tickers(list(delta_reject_tickers), False)
                 if len(tickers) < 1:
                     # if there are _still_ no tickers remaining, there's nothing
                     # more we can do
@@ -1842,18 +1643,14 @@ class PortfolioManager:
                     # uh of, if we make it here then all of these options are
                     # net debits, so let's at least choose the ticker that will
                     # result in the smallest debit (i.e., minimize the max loss)
-                    tickers = sorted(
-                        tickers, key=midpoint_or_market_price, reverse=True
-                    )
+                    tickers = sorted(tickers, key=midpoint_or_market_price, reverse=True)
 
             if the_chosen_ticker is None:
                 # fall back to the first suitable result
                 the_chosen_ticker = tickers[0]
 
             if not the_chosen_ticker or not the_chosen_ticker.contract:
-                raise RuntimeError(
-                    f"Something went wrong, the_chosen_ticker={the_chosen_ticker}"
-                )
+                raise RuntimeError(f"Something went wrong, the_chosen_ticker={the_chosen_ticker}")
 
             console.print(
                 f"[sea_green2]Found suitable contract for {main_contract.symbol} at "
@@ -1887,17 +1684,13 @@ class PortfolioManager:
                 )
                 return None
 
-            def vix_calls_should_be_closed() -> (
-                tuple[bool, Optional[Ticker], Optional[float]]
-            ):
+            def vix_calls_should_be_closed() -> tuple[bool, Optional[Ticker], Optional[float]]:
                 if "close_hedges_when_vix_exceeds" in self.config["vix_call_hedge"]:
                     vix_contract = Index("VIX", "CBOE", "USD")
                     self.ib.qualifyContracts(vix_contract)
                     self.ib.reqMktData(vix_contract)
                     vix_ticker = self.get_ticker_for(vix_contract)
-                    close_hedges_when_vix_exceeds = self.config["vix_call_hedge"][
-                        "close_hedges_when_vix_exceeds"
-                    ]
+                    close_hedges_when_vix_exceeds = self.config["vix_call_hedge"]["close_hedges_when_vix_exceeds"]
                     if vix_ticker.marketPrice() > close_hedges_when_vix_exceeds:
                         return (True, vix_ticker, close_hedges_when_vix_exceeds)
                     return (False, vix_ticker, close_hedges_when_vix_exceeds)
@@ -1905,12 +1698,8 @@ class PortfolioManager:
 
             ignore_dte = self.config["vix_call_hedge"]["ignore_dte"]
 
-            with console.status(
-                "[bold blue_violet]Checking on our VIX call hedge..."
-            ) as status:
-                net_vix_call_count = net_option_positions(
-                    "VIX", portfolio_positions, "C", ignore_dte=ignore_dte
-                )
+            with console.status("[bold blue_violet]Checking on our VIX call hedge...") as status:
+                net_vix_call_count = net_option_positions("VIX", portfolio_positions, "C", ignore_dte=ignore_dte)
                 if net_vix_call_count > 0:
                     status.update(
                         f"[bold blue_violet]net_vix_call_count={net_vix_call_count} "
@@ -1933,22 +1722,15 @@ class PortfolioManager:
                             "checking if we need to close positions...",
                         )
                         for position in portfolio_positions["VIX"]:
-                            if (
-                                position.contract.right.startswith("C")
-                                and position.position < 0
-                            ):
+                            if position.contract.right.startswith("C") and position.position < 0:
                                 # only applies to long calls
                                 continue
-                            to_print.append(
-                                f"[blue]Closing position {position.contract.localSymbol}"
-                            )
+                            to_print.append(f"[blue]Closing position {position.contract.localSymbol}")
                             status.update(
                                 f"[bold blue_violet]Creating closing order for {position.contract.localSymbol}..."
                             )
                             position.contract.exchange = self.get_order_exchange()
-                            sell_ticker = self.get_ticker_for(
-                                position.contract, midpoint=True
-                            )
+                            sell_ticker = self.get_ticker_for(position.contract, midpoint=True)
                             price = round(get_lower_price(sell_ticker), 2)
                             qty = abs(position.position)
                             order = LimitOrder(
@@ -1991,24 +1773,16 @@ class PortfolioManager:
                             if (
                                 "lower_bound" in allocation
                                 and "upper_bound" in allocation
-                                and allocation["lower_bound"]
-                                <= vixmo_ticker.marketPrice()
-                                < allocation["upper_bound"]
+                                and allocation["lower_bound"] <= vixmo_ticker.marketPrice() < allocation["upper_bound"]
                             ):
                                 weight = allocation["weight"]
                                 break
                             elif (
-                                "lower_bound" in allocation
-                                and allocation["lower_bound"]
-                                <= vixmo_ticker.marketPrice()
+                                "lower_bound" in allocation and allocation["lower_bound"] <= vixmo_ticker.marketPrice()
                             ):
                                 weight = allocation["weight"]
                                 break
-                            elif (
-                                "upper_bound" in allocation
-                                and vixmo_ticker.marketPrice()
-                                < allocation["upper_bound"]
-                            ):
+                            elif "upper_bound" in allocation and vixmo_ticker.marketPrice() < allocation["upper_bound"]:
                                 weight = allocation["weight"]
                                 break
 
@@ -2016,9 +1790,7 @@ class PortfolioManager:
                             f"VIXMO={vixmo_ticker.marketPrice():.2f}, target call hedge weight={weight}",
                         )
 
-                        allocation_amount = (
-                            float(account_summary["NetLiquidation"].value) * weight
-                        )
+                        allocation_amount = float(account_summary["NetLiquidation"].value) * weight
                         delta = self.config["vix_call_hedge"]["delta"]
                         target_dte = self.config["vix_call_hedge"]["target_dte"]
                         if weight > 0:
@@ -2050,16 +1822,10 @@ class PortfolioManager:
                             minimum_price=lambda: get_minimum_credit(self.config),
                         )
                         if not isinstance(buy_ticker.contract, Option):
-                            raise RuntimeError(
-                                f"Something went wrong, buy_ticker={buy_ticker}"
-                            )
+                            raise RuntimeError(f"Something went wrong, buy_ticker={buy_ticker}")
                         status.start()
                         price = round(get_lower_price(buy_ticker), 2)
-                        qty = math.floor(
-                            allocation_amount
-                            / price
-                            / float(buy_ticker.contract.multiplier)
-                        )
+                        qty = math.floor(allocation_amount / price / float(buy_ticker.contract.multiplier))
 
                         order = LimitOrder(
                             "BUY",
@@ -2087,9 +1853,7 @@ class PortfolioManager:
             if contract.secType == "BAG":
                 # with combos/bag orders we'll use the _first_ multiplier, for
                 # simplicity, because we only create combos with equal legs
-                return float(
-                    self.qualified_contracts[contract.comboLegs[0].conId].multiplier
-                )
+                return float(self.qualified_contracts[contract.comboLegs[0].conId].multiplier)
             return float(contract.multiplier)
 
         return sum(
@@ -2130,17 +1894,13 @@ class PortfolioManager:
 
                 def make_order() -> tuple[Optional[Ticker], Optional[LimitOrder]]:
                     symbol = self.config["cash_management"]["cash_fund"]
-                    primary_exchange = self.config["cash_management"].get(
-                        "primary_exchange", ""
-                    )
+                    primary_exchange = self.config["cash_management"].get("primary_exchange", "")
                     order_exchange = (
                         self.config["cash_management"]["orders"]["exchange"]
                         if "orders" in self.config["cash_management"]
                         else None
                     )
-                    ticker = self.get_ticker_for_stock(
-                        symbol, primary_exchange, order_exchange
-                    )
+                    ticker = self.get_ticker_for_stock(symbol, primary_exchange, order_exchange)
                     algo = (
                         self.config["cash_management"]["orders"]["algo"]
                         if "orders" in self.config["cash_management"]
@@ -2158,9 +1918,7 @@ class PortfolioManager:
                             f"{(dfmt(target_cash_balance + pending_balance + buy_threshold))} "
                             f"with pending_balance={dfmt(pending_balance)}"
                         )
-                        to_print.append(
-                            f"[green]Will buy {symbol} with qty={qty} shares at price={price}"
-                        )
+                        to_print.append(f"[green]Will buy {symbol} with qty={qty} shares at price={price}")
 
                     # make sure qty does not exceed balance if it's a negative value
                     if qty < 0:
@@ -2179,11 +1937,7 @@ class PortfolioManager:
                                 f" price={price}, but we have no position to sell"
                             )
                             return (None, None)
-                        positions = [
-                            p.position
-                            for p in portfolio_positions[symbol]
-                            if isinstance(p.contract, Stock)
-                        ]
+                        positions = [p.position for p in portfolio_positions[symbol] if isinstance(p.contract, Stock)]
                         position = positions[0] if len(positions) > 0 else 0
                         qty = min([max([-math.floor(position), qty]), 0])
                         # if for some reason the qty is zero, do nothing
@@ -2192,9 +1946,7 @@ class PortfolioManager:
                                 f"[red]Will sell {symbol} with qty={-qty} at price={price}, but we don't have any shares to sell"
                             )
                             return (None, None)
-                        to_print.append(
-                            f"[green]Will sell {symbol} with qty={-qty} at price={price}"
-                        )
+                        to_print.append(f"[green]Will sell {symbol} with qty={-qty} at price={price}")
 
                     order = LimitOrder(
                         "BUY" if qty > 0 else "SELL",
@@ -2210,8 +1962,7 @@ class PortfolioManager:
 
                 if (
                     cash_balance + pending_balance > target_cash_balance + buy_threshold
-                    or cash_balance + pending_balance
-                    < target_cash_balance - sell_threshold
+                    or cash_balance + pending_balance < target_cash_balance - sell_threshold
                 ):
                     (ticker, order) = make_order()
                     if ticker and ticker.contract and order:
@@ -2246,16 +1997,10 @@ class PortfolioManager:
                 console.print_exception()
             return None
 
-        self.trades = [
-            trade
-            for trade in [submit(order[0], order[1]) for order in self.orders]
-            if trade
-        ]
+        self.trades = [trade for trade in [submit(order[0], order[1]) for order in self.orders] if trade]
 
         if len(self.trades) > 0:
-            table = Table(
-                title="Orders submitted", show_lines=True, box=box.MINIMAL_HEAVY_HEAD
-            )
+            table = Table(title="Orders submitted", show_lines=True, box=box.MINIMAL_HEAVY_HEAD)
             table.add_column("Symbol")
             table.add_column("Exchange")
             table.add_column("Contract")
@@ -2283,9 +2028,7 @@ class PortfolioManager:
         if (
             any(
                 [
-                    not self.config["symbols"][symbol].get(
-                        "adjust_price_after_delay", False
-                    )
+                    not self.config["symbols"][symbol].get("adjust_price_after_delay", False)
                     for symbol in self.config["symbols"]
                 ]
             )
@@ -2304,9 +2047,7 @@ class PortfolioManager:
             description=f"Waiting {delay}s before we update prices...",
         ):
             if all([trade.isDone() for trade in self.trades]):
-                console.print(
-                    "[green]All trades are done, no need to adjust prices. Have a nice day 😊"
-                )
+                console.print("[green]All trades are done, no need to adjust prices. Have a nice day 😊")
                 break
             self.ib.sleep(1)
 
@@ -2315,18 +2056,14 @@ class PortfolioManager:
             for idx, trade in enumerate(self.trades)
             if trade
             and trade.contract.symbol in self.config["symbols"]
-            and self.config["symbols"][trade.contract.symbol].get(
-                "adjust_price_after_delay", False
-            )
+            and self.config["symbols"][trade.contract.symbol].get("adjust_price_after_delay", False)
             and not trade.isDone()
         ]
         for idx, trade in unfilled:
             try:
                 ticker = self.ib.reqMktData(trade.contract)
 
-                if self.wait_for_midpoint_price(
-                    ticker, wait_time=self.api_response_wait_time()
-                ):
+                if self.wait_for_midpoint_price(ticker, wait_time=self.api_response_wait_time()):
                     (contract, order) = (trade.contract, trade.order)
                     updated_price = np.sign(order.lmtPrice) * max(
                         [
@@ -2335,9 +2072,7 @@ class PortfolioManager:
                                 if order.action == "BUY" and order.lmtPrice <= 0.0
                                 else 0.0
                             ),
-                            math.fabs(
-                                round((order.lmtPrice + ticker.midpoint()) / 2.0, 2)
-                            ),
+                            math.fabs(round((order.lmtPrice + ticker.midpoint()) / 2.0, 2)),
                         ]
                     )
 
@@ -2354,9 +2089,7 @@ class PortfolioManager:
                     # Check if the updated price is actually any different
                     # before proceeding, and make sure the signs match so we
                     # don't switch a credit to a debit or vice versa.
-                    if order.lmtPrice != updated_price and np.sign(
-                        order.lmtPrice
-                    ) == np.sign(updated_price):
+                    if order.lmtPrice != updated_price and np.sign(order.lmtPrice) == np.sign(updated_price):
                         console.print(
                             f"[green]Resubmitting order for {contract.symbol}"
                             f" with old lmtPrice={dfmt(order.lmtPrice)} updated lmtPrice={dfmt(updated_price)}"
@@ -2374,28 +2107,18 @@ class PortfolioManager:
 
                         # put the trade back from whence it came
                         self.trades[idx] = self.ib.placeOrder(contract, order)
-                        console.print(
-                            f"[blue]Order updated, order={self.trades[idx].order}"
-                        )
+                        console.print(f"[blue]Order updated, order={self.trades[idx].order}")
                 else:
-                    console.print(
-                        f"[red]Couldn't get midpoint price for {trade.contract}, skipping"
-                    )
+                    console.print(f"[red]Couldn't get midpoint price for {trade.contract}, skipping")
             except RuntimeError:
                 console.print_exception()
 
     def wait_for_pending_orders(self) -> None:
-        with console.status(
-            f"[bold blue_violet]Waiting for {len(self.trades)} orders to submit..."
-        ) as _status:
+        with console.status(f"[bold blue_violet]Waiting for {len(self.trades)} orders to submit...") as _status:
             # Wait for pending orders
             wait_n_seconds(
                 lambda: any(
-                    [
-                        trade.orderStatus.status in ["PendingSubmit", "PreSubmitted"]
-                        for trade in self.trades
-                        if trade
-                    ]
+                    [trade.orderStatus.status in ["PendingSubmit", "PreSubmitted"] for trade in self.trades if trade]
                 ),
                 lambda remaining: self.ib.waitOnUpdate(timeout=remaining),
                 self.api_response_wait_time(),
@@ -2405,9 +2128,7 @@ class PortfolioManager:
         assert ticker.contract is not None
         absolute_daily_change = math.fabs(ticker.marketPrice() - ticker.close)
 
-        threshold_sigma = get_write_threshold_sigma(
-            self.config, ticker.contract.symbol, right
-        )
+        threshold_sigma = get_write_threshold_sigma(self.config, ticker.contract.symbol, right)
         if threshold_sigma:
             hist_prices = self.ib.reqHistoricalData(
                 ticker.contract,
@@ -2425,7 +2146,5 @@ class PortfolioManager:
                 absolute_daily_change,
             )
         else:
-            threshold_perc = get_write_threshold_perc(
-                self.config, ticker.contract.symbol, right
-            )
+            threshold_perc = get_write_threshold_perc(self.config, ticker.contract.symbol, right)
             return (threshold_perc * ticker.close, absolute_daily_change)

@@ -4,7 +4,7 @@ description   = "ThetaGang is an IBKR bot for getting money"
 documentation = "https://github.com/brndnmtthws/thetagang/blob/master/README.md"
 homepage      = "https://github.com/brndnmtthws/thetagang"
 license       = "AGPL-3.0-only"
-name          = "thetagang"
+name          = "theta"
 readme        = "README.md"
 repository    = "https://github.com/brndnmtthws/thetagang.git"
 version       = "1.12.4"
@@ -40,7 +40,7 @@ version       = "1.12.4"
 "GitHub"      = "https://github.com/brndnmtthws/thetagang"
 
 [tool.poetry.scripts]
-thetagang = 'thetagang.entry:cli'
+theta = 'theta.entry:cli'
 
 [tool.pylint.messages_control]
 disable = "C0330, C0326"

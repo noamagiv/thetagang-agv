@@ -94,10 +94,10 @@ minimum_credit = 0.05
 [option_chains]
 # The option chains are lazy loaded, and before you can determine the greeks
 # (delta) or prices, you need to scan the chains. The settings here tell
-# thetagang how many contracts to load. Don't make these values too high, as
+# theta how many contracts to load. Don't make these values too high, as
 # they will cause the chain scanning process to take too long, and it may fail.
 #
-# If you have issues where thetagang can't find suitable contracts, try
+# If you have issues where theta can't find suitable contracts, try
 # increasing these values slightly.
 #
 # Number of expirations to load from option chains
@@ -171,7 +171,7 @@ close_if_unable_to_roll = false
   credit_only = false
 
   # If set to false, calls will not be rolled if there are any number of calls in
-  # excess of the target call quantity. A truthy value means thetagang will keep
+  # excess of the target call quantity. A truthy value means theta will keep
   # rolling calls regardless of the total quantity.
   has_excess = true
 
@@ -210,7 +210,7 @@ close_if_unable_to_roll = false
   credit_only = false
 
   # If set to false, puts will not be rolled if there are any number of puts in
-  # excess of the target put quantity. A truthy value means thetagang will keep
+  # excess of the target put quantity. A truthy value means theta will keep
   # rolling puts regardless of the total quantity.
   has_excess = true
 
@@ -342,7 +342,7 @@ minimum_open_interest = 10
 
   # Sometimes, particularly for stocks/ETFs with limited liquidity, the spreads
   # are too wide to get an order filled at the midpoint on the first attempt. For
-  # those, you can try setting this to `true`, and thetagang will wait a random
+  # those, you can try setting this to `true`, and theta will wait a random
   # amount of time, then resubmit orders that haven't filled (but only for the
   # symbols with this set to true). The amount of time we'll wait is chosen
   # randomly from the range defined by `orders.price_update_delay`.
@@ -435,7 +435,7 @@ minimum_open_interest = 10
 
 # parts = 5
 [ib_insync]
-logfile = '/etc/thetagang/ib_insync.log'
+logfile = 'ib_insync.log'
 
 # Typically the amount of time needed when waiting on data from the IBKR API.
 # Sometimes it can take a while to retrieve data, and it's lazy-loaded by the
@@ -503,7 +503,7 @@ target_dte = 30
 close_hedges_when_vix_exceeds = 50.0
 
 # Don't count any VIX positions where the DTE is <= this value. Increase this
-# value to create a call ladder. For example, if you set this to 5, thetagang
+# value to create a call ladder. For example, if you set this to 5, theta
 # will ignore current VIX positions starting 5 days before expiry, and
 # potentially adding more. This allows you to create a simple call ladder.
 ignore_dte = 0
