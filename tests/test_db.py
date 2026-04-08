@@ -16,7 +16,10 @@ from thetagang.db import (
 )
 
 
-def test_data_store_records_executions_and_queries(tmp_path) -> None:
+def test_data_store_records_executions(tmp_path) -> None:
+    from sqlalchemy import select
+    from thetagang.db import ExecutionRecord
+
     db_path = tmp_path / "state.db"
     data_store = DataStore(
         f"sqlite:///{db_path}",
@@ -29,40 +32,20 @@ def test_data_store_records_executions_and_queries(tmp_path) -> None:
         SimpleNamespace(
             execution=SimpleNamespace(
                 execId="1",
-                orderRef="tg:regime-rebalance:AAA",
+                orderRef="tg:grid-spread:SPY:bull_put:480.00:20241220",
                 time=datetime(2024, 1, 5, 12, 0, 0),
             ),
-            contract=SimpleNamespace(symbol="AAA"),
+            contract=SimpleNamespace(symbol="SPY"),
             time=datetime(2024, 1, 5, 12, 0, 0),
-        ),
-        SimpleNamespace(
-            execution=SimpleNamespace(
-                execId="2",
-                orderRef="tg:regime-rebalance:BBB",
-                time=datetime(2024, 1, 7, 12, 0, 0),
-            ),
-            contract=SimpleNamespace(symbol="BBB"),
-            time=datetime(2024, 1, 7, 12, 0, 0),
-        ),
-        SimpleNamespace(
-            execution=SimpleNamespace(
-                execId="3",
-                orderRef="tg:other:CCC",
-                time=datetime(2024, 1, 9, 12, 0, 0),
-            ),
-            contract=SimpleNamespace(symbol="CCC"),
-            time=datetime(2024, 1, 9, 12, 0, 0),
         ),
     ]
 
     data_store.record_executions(fills)
-    last = data_store.get_last_regime_rebalance_time(
-        symbols=["AAA", "BBB"],
-        order_ref_prefix="tg:regime-rebalance",
-        start_time=datetime(2024, 1, 1, 0, 0, 0),
-    )
 
-    assert last == datetime(2024, 1, 7, 12, 0, 0)
+    with data_store.session_scope() as session:
+        rows = session.execute(select(ExecutionRecord)).scalars().all()
+        assert len(rows) == 1
+        assert rows[0].order_ref == "tg:grid-spread:SPY:bull_put:480.00:20241220"
 
 
 def test_sqlite_db_path_parses(tmp_path) -> None:
@@ -158,6 +141,9 @@ def test_record_historical_bars_upserts_and_parses_dates(tmp_path) -> None:
 
 
 def test_record_executions_parses_string_times(tmp_path) -> None:
+    from sqlalchemy import select
+    from thetagang.db import ExecutionRecord
+
     db_path = tmp_path / "state.db"
     data_store = DataStore(
         f"sqlite:///{db_path}",
@@ -170,22 +156,19 @@ def test_record_executions_parses_string_times(tmp_path) -> None:
         SimpleNamespace(
             execution=SimpleNamespace(
                 execId="1",
-                orderRef="tg:regime-rebalance:AAA",
+                orderRef="tg:grid-spread:SPY:bull_put:480.00:20241220",
                 time="20240105 12:00:00",
             ),
-            contract=SimpleNamespace(symbol="AAA"),
+            contract=SimpleNamespace(symbol="SPY"),
             time=None,
         )
     ]
 
     data_store.record_executions(fills)
-    last = data_store.get_last_regime_rebalance_time(
-        symbols=["AAA"],
-        order_ref_prefix="tg:regime-rebalance",
-        start_time=datetime(2024, 1, 1, 0, 0, 0),
-    )
 
-    assert last == datetime(2024, 1, 5, 12, 0, 0)
+    with data_store.session_scope() as session:
+        row = session.execute(select(ExecutionRecord)).scalar_one()
+        assert row.execution_time == datetime(2024, 1, 5, 12, 0, 0)
 
 
 def test_record_order_intent_links_orders(tmp_path) -> None:
@@ -247,9 +230,9 @@ def test_get_last_event_payload_ignores_dry_run(tmp_path) -> None:
         config_text="test",
     )
 
-    dry_run_store.record_event("regime_rebalance_state", {"flow_active": True})
-    live_store.record_event("regime_rebalance_state", {"flow_active": False})
+    dry_run_store.record_event("grid_spread_run", {"symbol": "SPY", "levels": 5})
+    live_store.record_event("grid_spread_run", {"symbol": "SPY", "levels": 8})
 
-    payload = live_store.get_last_event_payload("regime_rebalance_state")
+    payload = live_store.get_last_event_payload("grid_spread_run")
 
-    assert payload == {"flow_active": False}
+    assert payload == {"symbol": "SPY", "levels": 8}

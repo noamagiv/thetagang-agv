@@ -1,33 +1,39 @@
 import asyncio
-from pathlib import Path
 
-import tomlkit
+
+_GRID_CONFIG = """
+[meta]
+schema_version = 2
+
+[run]
+strategies = ["grid"]
+
+[runtime.account]
+number = "DU99999"
+margin_usage = 0.5
+
+[runtime.option_chains]
+expirations = 4
+strikes = 10
+
+[runtime.database]
+enabled = false
+
+[strategies.grid.symbols.SPY]
+lower_bound = 400.0
+upper_bound = 600.0
+grid_spacing = 5.0
+spread_width = 5.0
+max_loss_per_symbol = 5000.0
+max_exposure_per_symbol = 10000.0
+"""
 
 
 def test_watchdog_runs_inside_task(monkeypatch, tmp_path):
     import thetagang.thetagang as tg
 
-    base_config = tomlkit.parse(
-        Path("thetagang.toml").read_text(encoding="utf8")
-    ).unwrap()
-    if "meta" in base_config and base_config.get("meta", {}).get("schema_version") == 2:
-        base_config["runtime"]["database"]["enabled"] = False
-        base_config["runtime"]["ib_async"]["logfile"] = ""
-        stages = base_config.get("run", {}).get("stages", [])
-        if isinstance(stages, list):
-            base_config["run"].pop("strategies", None)
-            base_config["run"]["stages"] = [
-                {
-                    "id": "options_write_puts",
-                    "kind": "options.write_puts",
-                    "enabled": True,
-                }
-            ]
-    else:
-        base_config["database"]["enabled"] = False
-        base_config["ib_async"]["logfile"] = ""
     config_path = tmp_path / "thetagang.toml"
-    config_path.write_text(tomlkit.dumps(tomlkit.item(base_config)), encoding="utf8")
+    config_path.write_text(_GRID_CONFIG, encoding="utf8")
 
     loop = asyncio.new_event_loop()
     monkeypatch.setattr(tg.util, "getLoop", lambda: loop)
@@ -104,12 +110,7 @@ def test_watchdog_runs_inside_task(monkeypatch, tmp_path):
     monkeypatch.setattr(tg, "PortfolioManager", FakePortfolioManager)
     monkeypatch.setattr(tg, "Contract", FakeContract)
 
-    tg.start(
-        str(config_path),
-        without_ibc=False,
-        dry_run=True,
-        auto_approve_migration=False,
-    )
+    tg.start(str(config_path), without_ibc=False, dry_run=True)
 
     assert captured["watchdog"].started is True
     assert captured["watchdog"].stopped is True
