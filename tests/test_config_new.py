@@ -1,488 +1,115 @@
 import pytest
 
-from thetagang.config import (
-    Config,
-    RebalanceMode,
-    stage_enabled_map,
-    stage_enabled_map_from_run,
-)
+from thetagang.config import Config, stage_enabled_map, stage_enabled_map_from_run, RunConfig
 
 
-def _base_config(run):
+def _base_config(run=None):
     return {
         "meta": {"schema_version": 2},
-        "run": run,
+        "run": run or {"strategies": ["grid"]},
         "runtime": {
             "account": {"number": "DUX", "margin_usage": 0.5},
             "option_chains": {"expirations": 4, "strikes": 10},
         },
-        "portfolio": {"symbols": {"AAA": {"weight": 1.0}}},
         "strategies": {
-            "wheel": {
-                "defaults": {
-                    "target": {"dte": 30, "minimum_open_interest": 5},
-                    "roll_when": {"dte": 7},
+            "grid": {
+                "symbols": {
+                    "SPY": {
+                        "lower_bound": 400.0,
+                        "upper_bound": 600.0,
+                        "grid_spacing": 5.0,
+                        "spread_width": 5.0,
+                        "max_loss_per_symbol": 5000.0,
+                        "max_exposure_per_symbol": 10000.0,
+                    }
                 }
             }
         },
     }
 
 
-def test_stage_enabled_map_reflects_compiled_strategy_flags() -> None:
-    config = Config(**_base_config({"strategies": ["wheel", "cash_management"]}))
-    flags = stage_enabled_map(config)
-    assert flags["options_write_puts"] is True
-    assert flags["equity_regime_rebalance"] is False
-    assert flags["post_cash_management"] is True
-    assert flags["post_vix_call_hedge"] is False
+class TestRunConfig:
+    def test_strategies_required(self):
+        with pytest.raises(Exception, match="run must define"):
+            RunConfig()
 
+    def test_unknown_strategy_raises(self):
+        with pytest.raises(Exception, match="unknown strategy"):
+            RunConfig(strategies=["wheel"])
 
-def test_run_config_rejects_unknown_strategy_id() -> None:
-    with pytest.raises(ValueError, match="unknown strategy id"):
-        Config(**_base_config({"strategies": ["wheel", "not-a-real-strategy"]}))
+    def test_grid_strategy_valid(self):
+        rc = RunConfig(strategies=["grid"])
+        stages = rc.resolved_stages()
+        assert len(stages) == 1
+        assert stages[0].id == "equity_grid_spread"
 
+    def test_stage_enabled_map(self):
+        rc = RunConfig(strategies=["grid"])
+        m = stage_enabled_map_from_run(rc)
+        assert m["equity_grid_spread"] is True
 
-def test_run_config_rejects_duplicate_strategy_ids() -> None:
-    with pytest.raises(ValueError, match="must not contain duplicates"):
-        Config(**_base_config({"strategies": ["wheel", "wheel"]}))
-
-
-def test_run_config_rejects_wheel_and_regime_together() -> None:
-    with pytest.raises(
-        ValueError, match="cannot enable wheel and regime_rebalance together"
-    ):
-        Config(**_base_config({"strategies": ["wheel", "regime_rebalance"]}))
-
-
-def test_run_config_rejects_missing_run_plan() -> None:
-    with pytest.raises(
-        ValueError, match="must define at least one of run.strategies or run.stages"
-    ):
-        Config(**_base_config({}))
-
-
-def test_run_config_rejects_both_strategies_and_stages() -> None:
-    with pytest.raises(ValueError, match="must define exactly one"):
-        Config(
-            **_base_config(
-                {
-                    "strategies": ["wheel"],
-                    "stages": [
-                        {
-                            "id": "options_write_puts",
-                            "kind": "options.write_puts",
-                            "enabled": True,
-                        }
-                    ],
-                }
+    def test_stages_and_strategies_mutual_exclusion(self):
+        with pytest.raises(Exception, match="exactly one"):
+            RunConfig(
+                strategies=["grid"],
+                stages=[{"id": "equity_grid_spread", "kind": "equity.grid_spread"}],
             )
-        )
+
+    def test_unknown_stage_id_raises(self):
+        with pytest.raises(Exception, match="unknown stage id"):
+            RunConfig(stages=[{"id": "options_write_puts", "kind": "options.write_puts"}])
 
 
-def test_explicit_run_stages_still_supported_for_advanced_mode() -> None:
-    config = Config(
-        **_base_config(
-            {
-                "stages": [
-                    {
-                        "id": "equity_regime_rebalance",
-                        "kind": "equity.regime_rebalance",
-                        "enabled": True,
-                    },
-                    {
-                        "id": "post_cash_management",
-                        "kind": "post.cash_management",
-                        "enabled": True,
-                        "depends_on": ["equity_regime_rebalance"],
-                    },
-                ]
-            }
-        )
-    )
-    flags = stage_enabled_map_from_run(config.run)
-    assert flags["equity_regime_rebalance"] is True
-    assert flags["post_cash_management"] is True
+class TestConfig:
+    def test_valid_config(self):
+        cfg = Config(**_base_config())
+        assert cfg.runtime.account.number == "DUX"
+        assert "SPY" in cfg.strategies.grid.symbols
 
+    def test_stage_map_via_config(self):
+        cfg = Config(**_base_config())
+        m = stage_enabled_map(cfg)
+        assert m["equity_grid_spread"] is True
 
-def test_explicit_run_config_rejects_enabled_stage_with_disabled_dependency() -> None:
-    with pytest.raises(ValueError, match="depends on a disabled stage"):
-        Config(
-            **_base_config(
-                {
-                    "stages": [
-                        {
-                            "id": "options_write_puts",
-                            "kind": "options.write_puts",
-                            "enabled": False,
-                        },
-                        {
-                            "id": "options_write_calls",
-                            "kind": "options.write_calls",
-                            "enabled": True,
-                            "depends_on": ["options_write_puts"],
-                        },
-                    ]
-                }
-            )
-        )
+    def test_grid_symbol_spacing_validation(self):
+        doc = _base_config()
+        doc["strategies"]["grid"]["symbols"]["SPY"]["grid_spacing_pct"] = 0.01
+        with pytest.raises(Exception, match="only one of"):
+            Config(**doc)
 
+    def test_grid_symbol_no_spacing_raises(self):
+        doc = _base_config()
+        del doc["strategies"]["grid"]["symbols"]["SPY"]["grid_spacing"]
+        with pytest.raises(Exception, match="set grid_spacing"):
+            Config(**doc)
 
-def test_explicit_run_config_rejects_calls_stage_without_puts_stage() -> None:
-    with pytest.raises(
-        ValueError, match="options_write_calls requires enabled stage\\(s\\)"
-    ):
-        Config(
-            **_base_config(
-                {
-                    "stages": [
-                        {
-                            "id": "options_write_calls",
-                            "kind": "options.write_calls",
-                            "enabled": True,
-                        }
-                    ]
-                }
-            )
-        )
+    def test_grid_symbol_bounds_validation(self):
+        doc = _base_config()
+        doc["strategies"]["grid"]["symbols"]["SPY"]["upper_bound"] = 399.0
+        with pytest.raises(Exception, match="upper_bound must exceed lower_bound"):
+            Config(**doc)
 
+    def test_grid_spread_width_validation(self):
+        doc = _base_config()
+        doc["strategies"]["grid"]["symbols"]["SPY"]["spread_width"] = 500.0
+        with pytest.raises(Exception, match="spread_width must be smaller"):
+            Config(**doc)
 
-def test_explicit_run_config_rejects_unknown_stage_id() -> None:
-    with pytest.raises(ValueError, match="unknown stage id"):
-        Config(
-            **_base_config(
-                {
-                    "stages": [
-                        {"id": "oops", "kind": "options.write_puts", "enabled": False}
-                    ]
-                }
-            )
-        )
+    def test_bias_defaults_to_neutral(self):
+        cfg = Config(**_base_config())
+        from thetagang.config_models import GridBiasMode
+        assert cfg.strategies.grid.symbols["SPY"].bias.mode == GridBiasMode.NEUTRAL
+        assert cfg.strategies.grid.symbols["SPY"].bias.buy_levels == 5
+        assert cfg.strategies.grid.symbols["SPY"].bias.sell_levels == 5
 
+    def test_meta_schema_version_enforced(self):
+        doc = _base_config()
+        doc["meta"]["schema_version"] = 1
+        with pytest.raises(Exception, match="schema_version must be 2"):
+            Config(**doc)
 
-def test_explicit_run_config_rejects_mismatched_stage_kind() -> None:
-    with pytest.raises(ValueError, match="kind must be"):
-        Config(
-            **_base_config(
-                {
-                    "stages": [
-                        {
-                            "id": "options_write_puts",
-                            "kind": "options.write_calls",
-                            "enabled": False,
-                        }
-                    ]
-                }
-            )
-        )
-
-
-def test_v2_to_legacy_does_not_materialize_absent_strategy_sections() -> None:
-    config = Config(**_base_config({"strategies": ["wheel"]}))
-    assert config.strategies.regime_rebalance.enabled is False
-    assert config.strategies.vix_call_hedge.enabled is False
-    assert config.strategies.cash_management.enabled is False
-
-
-def test_v2_rejects_transitional_symbols_and_overrides() -> None:
-    with pytest.raises(ValueError):
-        Config.model_validate(
-            {
-                "meta": {"schema_version": 2},
-                "run": {
-                    "stages": [
-                        {"id": "options_write_puts", "kind": "options.write_puts"}
-                    ]
-                },
-                "runtime": {
-                    "account": {"number": "DUX", "margin_usage": 0.5},
-                    "option_chains": {"expirations": 4, "strikes": 10},
-                },
-                "symbols": {"AAA": {"weight": 1.0}},
-                "overrides": {
-                    "strategy_symbol": {
-                        "equity_buy_rebalance": {"AAA": {"buy_only_rebalancing": True}}
-                    }
-                },
-                "strategies": {
-                    "wheel": {
-                        "defaults": {
-                            "target": {"dte": 30, "minimum_open_interest": 5},
-                            "roll_when": {"dte": 7},
-                        }
-                    }
-                },
-            }
-        )
-
-
-def test_v2_uses_wheel_defaults_for_core_options_settings() -> None:
-    config = Config.model_validate(
-        {
-            "meta": {"schema_version": 2},
-            "run": {
-                "stages": [{"id": "options_write_puts", "kind": "options.write_puts"}]
-            },
-            "runtime": {
-                "account": {"number": "DUX", "margin_usage": 0.5},
-                "option_chains": {"expirations": 4, "strikes": 10},
-            },
-            "portfolio": {"symbols": {"AAA": {"weight": 1.0}}},
-            "strategies": {
-                "wheel": {
-                    "defaults": {
-                        "target": {"dte": 30, "minimum_open_interest": 5},
-                        "roll_when": {"dte": 7},
-                    }
-                }
-            },
-        }
-    )
-    assert config.target.dte == 30
-
-
-def test_v2_rejects_top_level_defaults() -> None:
-    with pytest.raises(ValueError):
-        Config.model_validate(
-            {
-                "meta": {"schema_version": 2},
-                "run": {"strategies": ["wheel"]},
-                "runtime": {
-                    "account": {"number": "DUX", "margin_usage": 0.5},
-                    "option_chains": {"expirations": 4, "strikes": 10},
-                },
-                "portfolio": {"symbols": {"AAA": {"weight": 1.0}}},
-                "strategies": {
-                    "wheel": {
-                        "defaults": {
-                            "target": {"dte": 30, "minimum_open_interest": 5},
-                            "roll_when": {"dte": 7},
-                        }
-                    }
-                },
-                "defaults": {"target": {"dte": 30}},
-            }
-        )
-
-
-def test_strategy_defaults_apply_to_symbols_for_buy_rebalance() -> None:
-    config = Config.model_validate(
-        {
-            "meta": {"schema_version": 2},
-            "run": {"strategies": ["wheel"]},
-            "runtime": {
-                "account": {"number": "DUX", "margin_usage": 0.5},
-                "option_chains": {"expirations": 4, "strikes": 10},
-            },
-            "portfolio": {"symbols": {"AAA": {"weight": 1.0}}},
-            "strategies": {
-                "wheel": {
-                    "defaults": {
-                        "target": {"dte": 30, "minimum_open_interest": 5},
-                        "roll_when": {"dte": 7},
-                    },
-                    "equity_rebalance": {
-                        "defaults": {"mode": "buy_only", "min_threshold_percent": 0.02}
-                    },
-                },
-            },
-        }
-    )
-    policy = config.wheel_rebalance_policy("AAA")
-    assert policy.mode == RebalanceMode.buy_only
-    assert policy.min_threshold_percent == pytest.approx(0.02)
-
-
-def test_strategy_symbol_override_wins_over_defaults() -> None:
-    config = Config.model_validate(
-        {
-            "meta": {"schema_version": 2},
-            "run": {"strategies": ["wheel"]},
-            "runtime": {
-                "account": {"number": "DUX", "margin_usage": 0.5},
-                "option_chains": {"expirations": 4, "strikes": 10},
-            },
-            "portfolio": {"symbols": {"AAA": {"weight": 1.0}}},
-            "strategies": {
-                "wheel": {
-                    "defaults": {
-                        "target": {"dte": 30, "minimum_open_interest": 5},
-                        "roll_when": {"dte": 7},
-                    },
-                    "equity_rebalance": {
-                        "defaults": {"mode": "buy_only", "min_threshold_percent": 0.02},
-                        "symbol_overrides": {"AAA": {"min_threshold_percent": 0.05}},
-                    },
-                },
-            },
-        }
-    )
-    policy = config.wheel_rebalance_policy("AAA")
-    assert policy.mode == RebalanceMode.buy_only
-    assert policy.min_threshold_percent == pytest.approx(0.05)
-
-
-def test_regime_rebalance_uses_same_equity_rebalance_policy_model() -> None:
-    config = Config.model_validate(
-        {
-            "meta": {"schema_version": 2},
-            "run": {"strategies": ["regime_rebalance"]},
-            "runtime": {
-                "account": {"number": "DUX", "margin_usage": 0.5},
-                "option_chains": {"expirations": 4, "strikes": 10},
-            },
-            "portfolio": {"symbols": {"AAA": {"weight": 1.0}}},
-            "strategies": {
-                "wheel": {
-                    "defaults": {
-                        "target": {"dte": 30, "minimum_open_interest": 5},
-                        "roll_when": {"dte": 7},
-                    }
-                },
-                "regime_rebalance": {
-                    "enabled": True,
-                    "symbols": ["AAA"],
-                    "equity_rebalance": {
-                        "defaults": {"mode": "sell_only"},
-                        "symbol_overrides": {
-                            "AAA": {"mode": "buy_only", "min_threshold_percent": 0.03}
-                        },
-                    },
-                },
-            },
-        }
-    )
-    policy = config.regime_rebalance_policy("AAA")
-    assert policy.mode == RebalanceMode.buy_only
-    assert policy.min_threshold_percent == pytest.approx(0.03)
-
-
-def test_strategy_margin_usage_falls_back_to_runtime_account_margin_usage() -> None:
-    config = Config(**_base_config({"strategies": ["wheel"]}))
-    assert config.wheel_margin_usage() == pytest.approx(0.5)
-    assert config.regime_margin_usage() == pytest.approx(0.5)
-
-
-def test_strategy_margin_usage_overrides_runtime_default() -> None:
-    config = Config.model_validate(
-        {
-            **_base_config({"strategies": ["wheel"]}),
-            "strategies": {
-                "wheel": {
-                    "defaults": {
-                        "target": {"dte": 30, "minimum_open_interest": 5},
-                        "roll_when": {"dte": 7},
-                    },
-                    "risk": {"margin_usage": 0.35},
-                },
-                "regime_rebalance": {
-                    "enabled": True,
-                    "symbols": ["AAA"],
-                    "risk": {"margin_usage": 0.8},
-                },
-            },
-        }
-    )
-    assert config.wheel_margin_usage() == pytest.approx(0.35)
-    assert config.regime_margin_usage() == pytest.approx(0.8)
-
-
-def test_wheel_defaults_and_symbol_overrides_map_consistently() -> None:
-    config = Config.model_validate(
-        {
-            "meta": {"schema_version": 2},
-            "run": {"strategies": ["wheel"]},
-            "runtime": {
-                "account": {"number": "DUX", "margin_usage": 0.5},
-                "option_chains": {"expirations": 4, "strikes": 10},
-            },
-            "portfolio": {"symbols": {"AAA": {"weight": 1.0}}},
-            "strategies": {
-                "wheel": {
-                    "defaults": {
-                        "target": {"dte": 30, "minimum_open_interest": 5},
-                        "roll_when": {"dte": 7},
-                        "write_calls_only_min_threshold_percent": 0.01,
-                    },
-                    "symbol_overrides": {
-                        "AAA": {"write_calls_only_min_threshold_percent": 0.03}
-                    },
-                }
-            },
-        }
-    )
-    assert config.write_when.calls.min_threshold_percent == pytest.approx(0.01)
-    assert config.symbols[
-        "AAA"
-    ].write_calls_only_min_threshold_percent == pytest.approx(0.03)
-
-
-def test_wheel_symbol_overrides_reject_invalid_types() -> None:
-    with pytest.raises(ValueError):
-        Config.model_validate(
-            {
-                "meta": {"schema_version": 2},
-                "run": {"strategies": ["wheel"]},
-                "runtime": {
-                    "account": {"number": "DUX", "margin_usage": 0.5},
-                    "option_chains": {"expirations": 4, "strikes": 10},
-                },
-                "portfolio": {"symbols": {"AAA": {"weight": 1.0}}},
-                "strategies": {
-                    "wheel": {
-                        "defaults": {
-                            "target": {"dte": 30, "minimum_open_interest": 5},
-                            "roll_when": {"dte": 7},
-                        },
-                        "symbol_overrides": {
-                            "AAA": {
-                                "write_calls_only_min_threshold_percent": "not-a-float"
-                            }
-                        },
-                    }
-                },
-            }
-        )
-
-
-def test_wheel_symbol_overrides_reject_unknown_keys() -> None:
-    with pytest.raises(ValueError):
-        Config.model_validate(
-            {
-                "meta": {"schema_version": 2},
-                "run": {"strategies": ["wheel"]},
-                "runtime": {
-                    "account": {"number": "DUX", "margin_usage": 0.5},
-                    "option_chains": {"expirations": 4, "strikes": 10},
-                },
-                "portfolio": {"symbols": {"AAA": {"weight": 1.0}}},
-                "strategies": {
-                    "wheel": {
-                        "defaults": {
-                            "target": {"dte": 30, "minimum_open_interest": 5},
-                            "roll_when": {"dte": 7},
-                        },
-                        "symbol_overrides": {"AAA": {"unexpected_field": 1}},
-                    }
-                },
-            }
-        )
-
-
-def test_v2_rejects_transitional_infrastructure_key() -> None:
-    with pytest.raises(ValueError):
-        Config.model_validate(
-            {
-                "meta": {"schema_version": 2},
-                "run": {"strategies": ["wheel"]},
-                "infrastructure": {"account": {"number": "DUX", "margin_usage": 0.5}},
-                "portfolio": {"symbols": {"AAA": {"weight": 1.0}}},
-                "strategies": {
-                    "wheel": {
-                        "defaults": {
-                            "target": {"dte": 30, "minimum_open_interest": 5},
-                            "roll_when": {"dte": 7},
-                        }
-                    }
-                },
-            }
-        )
+    def test_grid_symbols_required(self):
+        doc = _base_config()
+        doc["strategies"]["grid"]["symbols"] = {}
+        with pytest.raises(Exception):
+            Config(**doc)

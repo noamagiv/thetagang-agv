@@ -9,9 +9,6 @@ from rich.console import Console
 
 from thetagang import log
 from thetagang.config import Config, enabled_stage_ids_from_run, stage_enabled_map
-from thetagang.config_migration.startup_migration import (
-    run_startup_migration,
-)
 from thetagang.db import DataStore, sqlite_db_path
 from thetagang.exchange_hours import need_to_exit
 from thetagang.portfolio_manager import PortfolioManager
@@ -50,28 +47,8 @@ def start(
     config_path: str,
     without_ibc: bool = False,
     dry_run: bool = False,
-    *,
-    migrate_config: bool = False,
-    auto_approve_migration: bool = False,
 ) -> None:
-    migration_flow = run_startup_migration(
-        config_path,
-        migrate_only=migrate_config,
-        auto_approve=auto_approve_migration,
-    )
-
-    raw_config = migration_flow.config_text
-    if migrate_config:
-        if migration_flow.was_migrated:
-            console.print(
-                "Migration complete. Exiting because --migrate-config was set."
-            )
-        else:
-            console.print(
-                "Config already uses schema v2. Exiting because --migrate-config was set."
-            )
-        return
-
+    raw_config = Path(config_path).read_text()
     config_doc = tomlkit.parse(raw_config).unwrap()
     config = Config(**config_doc)
     run_stage_flags = stage_enabled_map(config)
